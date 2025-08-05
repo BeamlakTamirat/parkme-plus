@@ -1,0 +1,42 @@
+name: we_park_system
+repository: https://github.com/your-org/we-park-system
+
+packages:
+  - packages/**
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  build:all:
+    description: Build all applications
+    run: melos exec --flutter -- flutter build
+
+  test:all:
+    description: Run all tests  
+    run: melos exec --flutter -- flutter test
+
+  analyze:
+    description: Analyze all packages
+    run: melos exec --flutter -- flutter analyze
+
+  clean:all:
+    description: Clean all packages
+    run: melos exec --flutter -- flutter clean
+
+  get:all:
+    description: Get dependencies for all packages
+    run: melos exec --flutter -- flutter pub get
+
+  build:user-app:
+    description: Build user mobile app
+    run: melos exec --scope="user_app" -- flutter build apk
+
+  build:admin-web:
+    description: Build admin web app
+    run: melos exec --scope="admin_panel" -- flutter build web
+
+  build:attendant-app:
+    description: Build attendant tablet app
+    run: melos exec --scope="attendant_app" -- flutter build apk 
