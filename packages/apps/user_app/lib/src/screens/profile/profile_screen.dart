@@ -41,18 +41,20 @@ class ProfileScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.person,
-                          size: 48,
-                          color: AppColors.primary,
+                        child:ClipOval(
+                          child: Image.asset(
+                            'assets/images/miki.png',
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                      
                       const SizedBox(height: 16),
                       
                       // User Name
                       const Text(
-                        'John Doe',
+                        'Miki Gode',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
@@ -64,7 +66,7 @@ class ProfileScreen extends StatelessWidget {
                       
                       // Email
                       const Text(
-                        'john.doe@example.com',
+                        'mikoogoo12@gmail.com',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white70,
@@ -78,7 +80,6 @@ class ProfileScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _StatCard(title: 'Bookings', value: '12'),
-                          _StatCard(title: 'Saved', value: '1,240 ETB'),
                           _StatCard(title: 'Rating', value: '4.8'),
                         ],
                       ),
@@ -128,12 +129,6 @@ class ProfileScreen extends StatelessWidget {
                         icon: Icons.notifications_outlined,
                         title: 'Notifications',
                         subtitle: 'Push notifications, emails',
-                        onTap: () {},
-                      ),
-                      _MenuItem(
-                        icon: Icons.language_rounded,
-                        title: 'Language',
-                        subtitle: 'English, Amharic',
                         onTap: () {},
                       ),
                       _MenuItem(

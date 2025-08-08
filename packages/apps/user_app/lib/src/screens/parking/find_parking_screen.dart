@@ -1,356 +1,498 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class FindParkingScreen extends StatefulWidget {
+class FindParkingScreen extends ConsumerStatefulWidget {
   const FindParkingScreen({super.key});
 
   @override
-  State<FindParkingScreen> createState() => _FindParkingScreenState();
+  ConsumerState<FindParkingScreen> createState() => _FindParkingScreenState();
 }
 
-class _FindParkingScreenState extends State<FindParkingScreen> {
-  final _searchController = TextEditingController();
-  bool _isMapView = false;
+class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedFilter = 'All';
+  bool _showMapView = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => context.pop(),
+        ),
         title: const Text(
           'Find Parking',
           style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isMapView = !_isMapView;
-              });
-            },
-            icon: Icon(
-              _isMapView ? Icons.list_rounded : Icons.map_rounded,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
       ),
       body: Column(
         children: [
-          // Search Bar
-          Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search parking locations...',
-                prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-                suffixIcon: IconButton(
-                  onPressed: () {
-                    // TODO: Implement filter
-                  },
-                  icon: const Icon(Icons.tune, color: AppColors.primary),
-                ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.all(16),
-              ),
-            ),
-          ),
+          // Search and filter section
+          _buildSearchSection(),
 
-          // Content
+          // Map view toggle section
+          if (_showMapView) _buildMapViewSection(),
+
+          // Filter chips
+          _buildFilterSection(),
+
+          // Available parking list
           Expanded(
-            child: _isMapView ? _buildMapView() : _buildListView(),
+            child: _buildParkingList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMapView() {
+  Widget _buildSearchSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
+      color: Colors.white,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search,
+                    color: Colors.grey[500],
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search location...',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.tune,
+              color: Colors.grey[600],
+              size: 20,
+            ),
+          ),
+        ],
       ),
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.map_rounded,
-              size: 64,
-              color: AppColors.primary,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Map View',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+    );
+  }
+
+  Widget _buildMapViewSection() {
+    return Container(
+      color: Colors.white,
+      height: 200,
+      child: Stack(
+        children: [
+          // Map placeholder with interactive overlay
+          Container(
+            width: double.infinity,
+            color: Colors.grey[200],
+            child: const Center(
+              child: Text(
+                'Interactive Map View',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Google Maps integration coming soon',
-              style: TextStyle(
-                color: AppColors.textSecondary,
+          ),
+
+          // Floating location markers
+          Positioned(
+            top: 40,
+            left: 60,
+            child: _buildMapMarker('5', Colors.orange),
+          ),
+          Positioned(
+            top: 80,
+            right: 80,
+            child: _buildMapMarker('6', Colors.orange),
+          ),
+          Positioned(
+            bottom: 60,
+            left: 100,
+            child: _buildMapMarker('7', Colors.orange),
+          ),
+
+          // Map view toggle tooltip
+          Positioned(
+            top: 20,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.location_on,
+                    color: Colors.orange[700],
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Interactive Map View',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapMarker(String number, Color color) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Center(
+        child: Text(
+          number,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildListView() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _mockParkingLocations.length,
-      itemBuilder: (context, index) {
-        final location = _mockParkingLocations[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _ParkingLocationCard(location: location),
-        );
-      },
+  Widget _buildFilterSection() {
+    final filters = ['All', 'Covered', '24/7', 'Under 30 ETB', 'EV Charging'];
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: filters.map((filter) {
+            final isSelected = filter == _selectedFilter;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedFilter = filter),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.orange : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? Colors.orange : Colors.grey[300]!,
+                    ),
+                  ),
+                  child: Text(
+                    filter,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey[600],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
-}
 
-class _ParkingLocationCard extends StatelessWidget {
-  final ParkingLocationData location;
-
-  const _ParkingLocationCard({required this.location});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildParkingList() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      color: Colors.white,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image
-          Container(
-            height: 140,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.local_parking_rounded,
-                size: 48,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-
+          // List header
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        location.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: location.availableSpots > 0
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${location.availableSpots} spots',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: location.availableSpots > 0
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                      ),
-                    ),
-                  ],
+                const Text(
+                  'Available Parking (12)',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
-
-                const SizedBox(height: 8),
-
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on_rounded,
-                      size: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        location.address,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      size: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${location.distance}km • ${location.walkTime} min walk',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${location.pricePerHour} ETB/hr',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Book Now Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: location.availableSpots > 0
-                        ? () {
-                            // TODO: Navigate to booking details
-                          }
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: Text(
-                      location.availableSpots > 0 ? 'Book Now' : 'Full',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    // TODO: Implement sort options
+                  },
+                  child: const Text(
+                    'Sort by Distance',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
           ),
+
+          // Parking locations
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _buildParkingLocationCard(
+                  name: 'Meskel Square Parking',
+                  distance: '0.2 km',
+                  price: '25 ETB/hr',
+                  availableSpots: '15 spots',
+                  amenities: ['Covered', '24/7', 'Security'],
+                  rating: 4.8,
+                ),
+                const SizedBox(height: 12),
+                _buildParkingLocationCard(
+                  name: 'Piassa Mall Garage',
+                  distance: '0.5 km',
+                  price: '30 ETB/hr',
+                  availableSpots: '8 spots',
+                  amenities: ['EV Charging', 'Covered'],
+                  rating: 4.9,
+                  spotsColor: Colors.red,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+
+  Widget _buildParkingLocationCard({
+    required String name,
+    required String distance,
+    required String price,
+    required String availableSpots,
+    required List<String> amenities,
+    required double rating,
+    Color spotsColor = Colors.orange,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Car icon
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.local_parking,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Name and rating
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        ...List.generate(5, (index) {
+                          return Icon(
+                            Icons.star,
+                            size: 12,
+                            color: index < rating.floor()
+                                ? Colors.orange
+                                : Colors.grey[300],
+                          );
+                        }),
+                        const SizedBox(width: 4),
+                        Text(
+                          distance,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Favorite icon
+              Icon(
+                Icons.favorite_border,
+                color: Colors.grey[400],
+                size: 20,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Amenities
+          Wrap(
+            spacing: 8,
+            children: amenities.map((amenity) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  amenity,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Price and booking
+          Row(
+            children: [
+              Text(
+                price,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: spotsColor,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  availableSpots,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => context.push('/book-parking', extra: {
+                  'name': name,
+                  'price': price,
+                  'distance': distance,
+                }),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Book Now',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 }
-
-class ParkingLocationData {
-  final String name;
-  final String address;
-  final double distance;
-  final int walkTime;
-  final int pricePerHour;
-  final int availableSpots;
-
-  ParkingLocationData({
-    required this.name,
-    required this.address,
-    required this.distance,
-    required this.walkTime,
-    required this.pricePerHour,
-    required this.availableSpots,
-  });
-}
-
-final List<ParkingLocationData> _mockParkingLocations = [
-  ParkingLocationData(
-    name: 'Bole Atlas Mall',
-    address: 'Bole Road, Addis Ababa',
-    distance: 1.2,
-    walkTime: 5,
-    pricePerHour: 25,
-    availableSpots: 15,
-  ),
-  ParkingLocationData(
-    name: 'Edna Mall Parking',
-    address: 'Bole Medhanialem, Addis Ababa',
-    distance: 2.1,
-    walkTime: 8,
-    pricePerHour: 30,
-    availableSpots: 8,
-  ),
-  ParkingLocationData(
-    name: 'Sarbet Parking Zone',
-    address: 'Sarbet, Addis Ababa',
-    distance: 0.8,
-    walkTime: 3,
-    pricePerHour: 20,
-    availableSpots: 0,
-  ),
-  ParkingLocationData(
-    name: 'Unity Park Entrance',
-    address: 'Unity Park, Addis Ababa',
-    distance: 3.5,
-    walkTime: 12,
-    pricePerHour: 35,
-    availableSpots: 23,
-  ),
-];

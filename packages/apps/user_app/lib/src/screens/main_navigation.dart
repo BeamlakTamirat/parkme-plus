@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart';
+import 'package:go_router/go_router.dart';
+
 import 'home/home_screen.dart';
 import 'parking/find_parking_screen.dart';
+import 'history/parking_history_screen.dart';
 import 'profile/profile_screen.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+  final Widget child;
+  
+  const MainNavigation({
+    super.key,
+    required this.child,
+  });
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -13,115 +20,117 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
-
-  final List<Widget> _pages = [
+  
+  final List<Widget> _screens = [
     const HomeScreen(),
     const FindParkingScreen(),
-    const BookingsScreen(),
+    const ParkingHistoryScreen(),
     const ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
+      body: widget.child,
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  isActive: _currentIndex == 0,
-                  onTap: () => _onItemTapped(0),
-                ),
-                _NavItem(
-                  icon: Icons.search_rounded,
-                  label: 'Find',
-                  isActive: _currentIndex == 1,
-                  onTap: () => _onItemTapped(1),
-                ),
-                _NavItem(
-                  icon: Icons.history_rounded,
-                  label: 'Bookings',
-                  isActive: _currentIndex == 2,
-                  onTap: () => _onItemTapped(2),
-                ),
-                _NavItem(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  isActive: _currentIndex == 3,
-                  onTap: () => _onItemTapped(3),
-                ),
-              ],
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home,
+                label: 'Home',
+                index: 0,
+                onTap: () => context.go('/home'),
+              ),
+              _buildNavItem(
+                icon: Icons.search_outlined,
+                activeIcon: Icons.search,
+                label: 'Find',
+                index: 1,
+                onTap: () => context.push('/find-parking'),
+              ),
+              _buildNavItem(
+                icon: Icons.history_outlined,
+                activeIcon: Icons.history,
+                label: 'Bookings',
+                index: 2,
+                onTap: () => context.push('/history'),
+              ),
+              _buildNavItem(
+                icon: Icons.person_outline,
+                activeIcon: Icons.person,
+                label: 'Profile',
+                index: 3,
+                onTap: () => context.go('/profile'),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required int index,
+    required VoidCallback onTap,
+  }) {
+    final isActive = _currentIndex == index;
+    
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      onTap: () {
+        setState(() => _currentIndex = index);
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          color: isActive ? Colors.orange.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              icon,
+              isActive ? activeIcon : icon,
+              color: isActive ? Colors.orange : Colors.grey[600],
               size: 24,
-              color: isActive ? AppColors.primary : Colors.grey.shade600,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
+                color: isActive ? Colors.orange : Colors.grey[600],
                 fontSize: 12,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive ? AppColors.primary : Colors.grey.shade600,
               ),
             ),
           ],
@@ -131,52 +140,18 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-// Placeholder screens for tabs
+// Simple bookings screen placeholder
 class BookingsScreen extends StatelessWidget {
   const BookingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'My Bookings',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.history_rounded,
-              size: 64,
-              color: AppColors.primary,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Bookings Screen',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Your booking history will appear here',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
+    return const Scaffold(
+      body: Center(
+        child: Text(
+          'Bookings Screen\n(Redirects to History)',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16),
         ),
       ),
     );

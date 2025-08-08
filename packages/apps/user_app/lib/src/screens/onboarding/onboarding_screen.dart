@@ -13,72 +13,99 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingData> _onboardingData = [
+  final List<OnboardingData> _onboardingPages = [
     OnboardingData(
+      useImage: true,
+      imagePath: 'assets/images/logo.png',
+      icon: Icons.search_outlined,
       title: 'Find Parking Spots',
       description:
-          'Discover available parking spaces near you in real-time with our smart map integration.',
-      icon: Icons.location_on_rounded,
-      image: '🅿️',
+          'Discover available parking spaces near you with real-time updates',
+      backgroundColor: AppColors.primary,
     ),
     OnboardingData(
-      title: 'Book Instantly',
-      description:
-          'Reserve your parking spot in advance and never worry about finding a place to park.',
-      icon: Icons.event_available_rounded,
-      image: '📅',
+      useImage: false,
+      imagePath: '',
+      icon: Icons.qr_code_scanner_outlined,
+      title: 'Easy Check-in',
+      description: 'Quick QR code scanning for seamless parking experience',
+      backgroundColor: AppColors.primary,
     ),
     OnboardingData(
-      title: 'Pay Securely',
+      useImage: false,
+      imagePath: '',
+      icon: Icons.payment_outlined,
+      title: 'Secure Payments',
       description:
-          'Pay with Telebirr, CBE Birr, or card. Fast, secure, and hassle-free transactions.',
-      icon: Icons.payment_rounded,
-      image: '💳',
+          'Multiple payment options including Telebirr, CBE Birr, and Credit Cards',
+      backgroundColor: AppColors.primary,
     ),
   ];
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _nextPage() {
-    if (_currentPage < _onboardingData.length - 1) {
+    if (_currentPage < _onboardingPages.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
-      context.go('/welcome');
+      _completeOnboarding();
     }
   }
 
-  void _skip() {
-    context.go('/welcome');
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _completeOnboarding() {
+    // TODO: Save onboarding completion to SharedPreferences
+    context.pushReplacement('/welcome');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.primary,
       body: SafeArea(
         child: Column(
           children: [
-            // Skip Button
+            // Status bar and skip button
             Padding(
-              padding: const EdgeInsets.only(top: 16, right: 24),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _skip,
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Time and battery indicators area
+                  const SizedBox(width: 60),
+
+                  // Skip button
+                  TextButton(
+                    onPressed: _completeOnboarding,
+                    child: const Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
 
-            // PageView
+            // Main content
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -87,100 +114,165 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     _currentPage = index;
                   });
                 },
-                itemCount: _onboardingData.length,
+                itemCount: _onboardingPages.length,
                 itemBuilder: (context, index) {
-                  return _OnboardingPage(data: _onboardingData[index]);
+                  return _buildOnboardingPage(_onboardingPages[index]);
                 },
               ),
             ),
 
-            // Page Indicators
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _onboardingData.length,
-                (index) => _PageIndicator(
-                  isActive: index == _currentPage,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            // Next/Get Started Button
+            // Bottom section with indicators and buttons
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _nextPage,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    _currentPage == _onboardingData.length - 1
-                        ? 'Get Started'
-                        : 'Next',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // Page indicators
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _onboardingPages.length,
+                      (index) => _buildPageIndicator(index),
                     ),
                   ),
-                ),
+
+                  const SizedBox(height: 40),
+
+                  // Navigation buttons
+                  Row(
+                    children: [
+                      // Previous button
+                      if (_currentPage > 0)
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _previousPage,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(
+                                  color: Colors.white, width: 2),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Previous',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      if (_currentPage > 0) const SizedBox(width: 16),
+
+                      // Next/Get Started button
+                      Expanded(
+                        flex: _currentPage == 0 ? 1 : 1,
+                        child: ElevatedButton(
+                          onPressed: _nextPage,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primary,
+                            elevation: 8,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            _currentPage == _onboardingPages.length - 1
+                                ? 'Get Started'
+                                : 'Next',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
-}
 
-class _OnboardingPage extends StatelessWidget {
-  final OnboardingData data;
-
-  const _OnboardingPage({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildOnboardingPage(OnboardingData data) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 30),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Spacer(flex: 1),
-
-          // Illustration
+          // Icon or Image section
           Container(
-            width: 280,
-            height: 280,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    data.image,
-                    style: const TextStyle(fontSize: 80),
+            height: 300,
+            width: double.infinity,
+            child: data.useImage
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Logo image
+                      Container(
+                        height: 120,
+                        width: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: Image.asset(
+                            data.imagePath,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      // Additional decorative elements for first page
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildFloatingIcon(Icons.location_on, Colors.red),
+                          _buildFloatingIcon(Icons.local_parking, Colors.blue),
+                          _buildFloatingIcon(Icons.navigation, Colors.green),
+                        ],
+                      ),
+                    ],
+                  )
+                : Center(
+                    child: Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Container(
+                        margin: const EdgeInsets.all(20),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          data.icon,
+                          size: 60,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
           ),
 
           const SizedBox(height: 60),
@@ -188,66 +280,79 @@ class _OnboardingPage extends StatelessWidget {
           // Title
           Text(
             data.title,
-            textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 28,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              height: 1.2,
             ),
+            textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Description
           Text(
             data.description,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: AppColors.textSecondary,
+              color: Colors.white.withOpacity(0.8),
               height: 1.5,
             ),
+            textAlign: TextAlign.center,
           ),
-
-          const Spacer(flex: 2),
         ],
       ),
     );
   }
-}
 
-class _PageIndicator extends StatelessWidget {
-  final bool isActive;
+  Widget _buildFloatingIcon(IconData icon, Color color) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+      ),
+      child: Icon(
+        icon,
+        color: Colors.white,
+        size: 24,
+      ),
+    );
+  }
 
-  const _PageIndicator({required this.isActive});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPageIndicator(int index) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: isActive ? 24 : 8,
       height: 8,
+      width: _currentPage == index ? 24 : 8,
       decoration: BoxDecoration(
-        color: isActive ? AppColors.primary : Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(4),
+        color: _currentPage == index
+            ? Colors.white
+            : Colors.white.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(12),
       ),
     );
   }
 }
 
 class OnboardingData {
+  final bool useImage;
+  final String imagePath;
+  final IconData icon;
   final String title;
   final String description;
-  final IconData icon;
-  final String image;
+  final Color backgroundColor;
 
   OnboardingData({
+    required this.useImage,
+    required this.imagePath,
+    required this.icon,
     required this.title,
     required this.description,
-    required this.icon,
-    required this.image,
+    required this.backgroundColor,
   });
 }
