@@ -26,7 +26,7 @@ class WelcomeScreen extends StatelessWidget {
               children: [
                 const Spacer(flex: 2),
                 
-                // App Icon
+                // App Icon 
                 Container(
                   width: 120,
                   height: 120,
@@ -35,19 +35,18 @@ class WelcomeScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withOpacity(0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
                     ],
-                  ),
-                  child: const Icon(
-                    Icons.local_parking_rounded,
-                    size: 60,
-                    color: Color(0xFFFF9500),
+                    image: const DecorationImage(
+                      image: AssetImage('assets/images/logowepark.png'),
+                      fit: BoxFit.cover, // fills the whole container
+                    ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
                 
                 // App Name
@@ -65,7 +64,7 @@ class WelcomeScreen extends StatelessWidget {
                 
                 // Tagline
                 const Text(
-                  'Smart Parking Solution s',
+                  'Smart Parking Solutions',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w500,
@@ -90,9 +89,9 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'Get Started',
+                      'Start',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
