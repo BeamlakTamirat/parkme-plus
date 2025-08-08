@@ -8,17 +8,19 @@ plugins {
 android {
     namespace = "com.example.user_app"
     compileSdk = 35
-    // Using Flutter's default NDK for maximum compatibility and stability
-    // Note: Some plugins may show warnings for NDK 27, but they still work fine
-    ndkVersion = flutter.ndkVersion
+    // Updated to NDK 29 as specified by user
+    ndkVersion = "29.0.13846066"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        // Core library desugaring requires Java 8+
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+        // Enable core library desugaring
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = "21"
+        jvmTarget = "1.8"
     }
 
     defaultConfig {
@@ -39,6 +41,11 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    // Core library desugaring for flutter_local_notifications
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
 
 flutter {

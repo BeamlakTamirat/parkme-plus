@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- WePark brand colors -->
+    <color name="wepark_orange">#F5A623</color>
+    <color name="wepark_orange_dark">#FF8C00</color>
+</resources> 
