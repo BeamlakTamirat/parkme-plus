@@ -1,0 +1,51 @@
+# =============================================================================
+# ParkMe Plus 
+
+
+# Build artifacts
+**/build/
+**/dist/
+**/.dart_tool/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS junk
+.DS_Store
+*.swp
+*.log
+
+# Environment files 
+.env
+.env.*
+
+# Flutter generated
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Platform build directories (not needed for unit tests)
+**/android/.gradle/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/ios/Pods/
+**/ios/Flutter/App.framework/
+**/ios/Flutter/Flutter.framework/
+**/ios/.generated/
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+
+# Coverage
+coverage/
+
+# Melos
+.melos_tool/
+
+# Screenshots (large images, not needed for tests)
+screenshots/

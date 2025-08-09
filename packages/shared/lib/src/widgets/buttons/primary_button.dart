@@ -59,7 +59,7 @@ class PrimaryButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[
-                    icon!,
+                    icon,
                     const SizedBox(width: 8),
                   ],
                   Text(
@@ -141,7 +141,7 @@ class SecondaryButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[
-                    icon!,
+                    icon,
                     const SizedBox(width: 8),
                   ],
                   Text(
