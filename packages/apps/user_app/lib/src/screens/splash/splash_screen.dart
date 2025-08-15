@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared/shared.dart';
 import 'package:shared/src/config/appwrite_config.dart';
+import '../../providers/simple_providers.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _mainController;
   late AnimationController _titleController;
   late AnimationController _subtitleController;
-  late AnimationController _buttonController;
   late AnimationController _phoneController;
   late AnimationController _carsController;
 
@@ -25,23 +26,12 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<Offset> _titleSlide;
   late Animation<double> _subtitleOpacity;
   late Animation<Offset> _subtitleSlide;
-  late Animation<double> _buttonOpacity;
-  late Animation<double> _buttonScale;
-
-  bool _isFirstTime = true; // Check if it's first time opening the app
 
   @override
   void initState() {
     super.initState();
-    _checkFirstTime();
     _initializeAnimations();
     _startAnimationSequence();
-  }
-
-  void _checkFirstTime() {
-    // TODO: Check SharedPreferences for first time flag
-    // For now, assume it's first time to show onboarding
-    _isFirstTime = true;
   }
 
   void _initializeAnimations() {
@@ -51,33 +41,23 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
     );
 
-    // Phone appearance animation
     _phoneController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
-    // Cars sliding in animation
     _carsController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
-    // Title text animation
     _titleController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
 
-    // Subtitle text animation
     _subtitleController = AnimationController(
       duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    // Button animation
-    _buttonController = AnimationController(
-      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
@@ -132,23 +112,6 @@ class _SplashScreenState extends State<SplashScreen>
       parent: _subtitleController,
       curve: Curves.easeOutCubic,
     ));
-
-    // Button animations
-    _buttonOpacity = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _buttonController,
-      curve: Curves.easeOut,
-    ));
-
-    _buttonScale = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _buttonController,
-      curve: Curves.elasticOut,
-    ));
   }
 
   void _startAnimationSequence() async {
@@ -170,14 +133,30 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 300));
     _subtitleController.forward();
 
-    // If first time, show button to go to onboarding
-    if (_isFirstTime) {
-      await Future.delayed(const Duration(milliseconds: 400));
-      _buttonController.forward();
+    await Future.delayed(const Duration(milliseconds: 1500));
+    _checkAppState();
+  }
+
+  void _checkAppState() async {
+    if (!mounted) return;
+
+    // Check if user is authenticated
+    final isAuthenticated = await ref.read(isAuthenticatedProvider.future);
+    
+    if (isAuthenticated) {
+      // User is logged in, go directly to home
+      _navigateToHome();
     } else {
-      // If not first time, wait and navigate directly to sign-in
-      await Future.delayed(const Duration(milliseconds: 1000));
-      _navigateToSignIn();
+      // User is not logged in, check if first time
+      final isFirstTime = await ref.read(isFirstTimeUserProvider.future);
+      
+      if (isFirstTime) {
+        // First time user, show onboarding
+        _navigateToOnboarding();
+      } else {
+        // Returning user, go to sign in
+        _navigateToSignIn();
+      }
     }
   }
 
@@ -193,10 +172,10 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
-  void _onGetStarted() {
-    // Mark as not first time
-    // TODO: Save to SharedPreferences
-    _navigateToOnboarding();
+  void _navigateToHome() {
+    if (mounted) {
+      context.pushReplacement('/home');
+    }
   }
 
   @override
@@ -206,7 +185,6 @@ class _SplashScreenState extends State<SplashScreen>
     _carsController.dispose();
     _titleController.dispose();
     _subtitleController.dispose();
-    _buttonController.dispose();
     super.dispose();
   }
 
@@ -399,7 +377,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
 
-              // Bottom section with subtitle and button
+              // Bottom section with subtitle
               Expanded(
                 flex: 2,
                 child: Column(
@@ -426,44 +404,6 @@ class _SplashScreenState extends State<SplashScreen>
                         );
                       },
                     ),
-
-                    const SizedBox(height: 40),
-
-                    // Get Started button (only for first time)
-                    if (_isFirstTime)
-                      AnimatedBuilder(
-                        animation: _buttonController,
-                        builder: (context, child) {
-                          return FadeTransition(
-                            opacity: _buttonOpacity,
-                            child: ScaleTransition(
-                              scale: _buttonScale,
-                              child: ElevatedButton(
-                                onPressed: _onGetStarted,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFFF5A623),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 40,
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                  elevation: 8,
-                                ),
-                                child: const Text(
-                                  'Get Started',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
                   ],
                 ),
               ),

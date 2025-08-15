@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../routes/app_router.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -14,91 +13,64 @@ class WelcomeScreen extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFFF9500), // WePark Orange
-              Color(0xFFE6850E), // Darker Orange
+              Color(0xFFF5A623),
+              Color(0xFFFF8C00),
             ],
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            padding: const EdgeInsets.all(24.0),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Spacer(flex: 2),
-                
-                // App Icon 
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                    image: const DecorationImage(
-                      image: AssetImage('assets/images/logowepark.png'),
-                      fit: BoxFit.cover, // fills the whole container
-                    ),
-                  ),
+                const Icon(
+                  Icons.check_circle,
+                  size: 120,
+                  color: Colors.white,
                 ),
-
                 const SizedBox(height: 40),
-                
-                // App Name
                 const Text(
-                  'WePark',
+                  'Welcome to WePark!',
                   style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    letterSpacing: -1.0,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                
-                const SizedBox(height: 8),
-                
-                // Tagline
+                const SizedBox(height: 16),
                 const Text(
-                  'Smart Parking Solutions',
+                  'You\'re all set to start finding and booking parking spots!',
                   style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
                     color: Colors.white,
-                    letterSpacing: -0.4,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                
-                const Spacer(flex: 3),
-                
-                // Get Started Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () => context.push(AppRoutes.signIn),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFFF9500),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                const SizedBox(height: 60),
+                ElevatedButton(
+                  onPressed: () => context.pushReplacement('/sign-in'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFFF5A623),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 16,
                     ),
-                    child: const Text(
-                      'Start',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 8,
+                  ),
+                  child: const Text(
+                    'Get Started',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                
-                const SizedBox(height: 50),
               ],
             ),
           ),

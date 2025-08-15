@@ -20,3 +20,17 @@ final isAuthenticatedProvider = FutureProvider<bool>((ref) async {
   final authService = ref.watch(simpleAuthProvider);
   return await authService.isLoggedIn();
 });
+
+/// Onboarding state provider
+final isFirstTimeUserProvider = FutureProvider<bool>((ref) async {
+  // For now, always return true to show onboarding
+  // In a real app, you'd check SharedPreferences
+  return true;
+});
+
+/// Complete onboarding provider
+final completeOnboardingProvider = FutureProvider.family<void, bool>((ref, completed) async {
+  // In a real app, you'd save this to SharedPreferences
+  // For now, just simulate the completion
+  await Future.delayed(const Duration(milliseconds: 100));
+});
