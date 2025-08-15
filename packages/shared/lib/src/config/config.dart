@@ -1,3 +1,3 @@
-export 'firebase_config.dart';
-export 'app_config.dart';
+// Simple configuration exports
+export 'appwrite_config.dart';
 export 'payment_config.dart';

@@ -1,3 +1,4 @@
+// Plugins removed for Appwrite implementation
 allprojects {
     repositories {
         google()

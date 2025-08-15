@@ -16,7 +16,7 @@ class BookParkingScreen extends ConsumerStatefulWidget {
 
 class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
   String _selectedDate = 'Today';
-  String _selectedVehicle = 'Toyota Corolla';
+  final String _selectedVehicle = 'Toyota Corolla';
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 2);
 
@@ -24,7 +24,7 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
   Widget build(BuildContext context) {
     final locationName =
         widget.locationData?['name'] ?? 'Meskel Square Parking';
-    final rating = 4.8;
+    const rating = 4.8;
     final distance = widget.locationData?['distance'] ?? '0.2 km away';
 
     return Scaffold(
@@ -455,12 +455,12 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Column(
+          child: const Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Parking Rate (8 hours)',
                     style: TextStyle(
                       fontSize: 14,
@@ -469,7 +469,7 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                   Text(
                     '$parkingRate ETB',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
@@ -477,11 +477,11 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Service Fee',
                     style: TextStyle(
                       fontSize: 14,
@@ -490,7 +490,7 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                   Text(
                     '$serviceFee ETB',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
@@ -498,13 +498,13 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Divider(height: 1),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
+              Divider(height: 1),
+              SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Total Amount',
                     style: TextStyle(
                       fontSize: 16,
@@ -514,7 +514,7 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                   Text(
                     '$totalAmount ETB',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.orange,

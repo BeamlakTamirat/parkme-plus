@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,17 +8,15 @@ import 'src/app.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize backend services
+  // Initialize Appwrite
   try {
-    print('🚀 Initializing WePark Backend...');
-    
-    // Initialize Firebase and other backend services
-    await BackendService.instance.initialize();
-    
-    print('✅ Backend initialized successfully');
+    print('🚀 Initializing Appwrite...');
+    await AppwriteConfig.initialize();
+    print('✅ Appwrite initialized successfully');
   } catch (e) {
-    print('❌ Backend initialization failed: $e');
-
+    print('❌ Appwrite initialization failed: $e');
+    print('📁 Make sure your .env file exists with correct Project ID');
+    print('ℹ️  App will continue but authentication will not work');
   }
 
   // Set preferred orientations
@@ -36,5 +35,7 @@ void main() async {
     ),
   );
 
-  runApp(const ProviderScope(child: WeParkApp()));
+  runApp(const ProviderScope(
+    child: WeParkApp(),
+  ));
 }

@@ -1,7 +1,5 @@
-// User Models
-export 'user/user.dart';
-export 'user/user_profile.dart';
-export 'user/user_preferences.dart';
+// Simple User Model
+export 'user/simple_user.dart';
 
 // Parking Models
 export 'parking/parking_location.dart';

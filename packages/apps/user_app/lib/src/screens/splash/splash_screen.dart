@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared/shared.dart';
+import 'package:shared/src/config/appwrite_config.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -39,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _checkFirstTime() {
     // TODO: Check SharedPreferences for first time flag
-    // For now, we'll assume it's first time to show onboarding
+    // For now, assume it's first time to show onboarding
     _isFirstTime = true;
   }
 
@@ -152,7 +153,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _startAnimationSequence() async {
     // Initialize backend
-    await BackendService.instance.initialize();
+    await AppwriteConfig.initialize();
 
     // Start phone animation
     await _phoneController.forward();
@@ -334,7 +335,7 @@ class _SplashScreenState extends State<SplashScreen>
                                               ..setEntry(3, 2, 0.001)
                                               ..rotateX(0.1)
                                               ..rotateY(0.2),
-                                            child: Container(
+                                            child: SizedBox(
                                               width: 30,
                                               height: 40,
                                               child: Column(

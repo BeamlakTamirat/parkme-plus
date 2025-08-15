@@ -12,7 +12,7 @@ class FindParkingScreen extends ConsumerStatefulWidget {
 class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'All';
-  bool _showMapView = true;
+  final bool _showMapView = true;
 
   @override
   Widget build(BuildContext context) {

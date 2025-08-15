@@ -1,6 +1,6 @@
 # WePark - Smart Parking System
 
-A comprehensive smart parking solution built with Flutter and Firebase, enabling users to find, book, and pay for parking spots in real-time.
+A comprehensive smart parking solution built with Flutter and **Appwrite**, enabling users to find, book, and pay for parking spots in real-time.
 
 ## 🏗️ Project Structure
 
@@ -35,8 +35,7 @@ This is a monorepo containing multiple Flutter applications:
 ## 🛠️ Tech Stack
 
 - **Frontend**: Flutter (Mobile & Web)
-- **Backend**: Firebase (Firestore, Auth, Functions, FCM)
-- **Storage**: Supabase Storage
+- **Backend**: Appwrite (Database, Auth, Storage, Functions)
 - **Payments**: Chapa (Telebirr, CBE Birr, Cards)
 - **State Management**: Riverpod
 - **Monorepo Tool**: Melos
@@ -46,7 +45,7 @@ This is a monorepo containing multiple Flutter applications:
 ### Prerequisites
 - Flutter SDK (^3.19.0)
 - Dart SDK (^3.3.0)
-- Node.js (for Firebase Functions)
+- Appwrite Cloud account or self-hosted instance
 - Melos CLI
 
 ### Installation
@@ -59,14 +58,14 @@ This is a monorepo containing multiple Flutter applications:
 2. **Clone and Setup**
    ```bash
    git clone <repository-url>
-   cd we_park_system
+   cd wepark
    melos bootstrap
    ```
 
 3. **Configure Environment**
-   - Setup Firebase project
-   - Configure Supabase storage
+   - Setup Appwrite project (see `APPWRITE_SETUP.md`)
    - Add Chapa API keys
+   - Configure Google Maps API
 
 ### Development Commands
 
@@ -91,15 +90,13 @@ melos build:attendant-app
 
 ## 🔧 Configuration
 
-### Firebase Setup
-1. Create Firebase project
-2. Enable Authentication, Firestore, Storage, FCM
-3. Add configuration files to each app
+### Appwrite Setup
+1. Create Appwrite project (Cloud or self-hosted)
+2. Configure authentication, database, storage
+3. Setup collections and permissions
+4. Add configuration to `.env` files
 
-### Supabase Setup
-1. Create Supabase project
-2. Setup storage buckets
-3. Configure access policies
+**📋 See `APPWRITE_SETUP.md` for detailed instructions**
 
 ### Chapa Integration
 1. Get API keys from Chapa
@@ -115,7 +112,6 @@ packages/
 │   ├── user_app/     # Mobile app for users
 │   ├── admin_panel/  # Web dashboard
 │   └── attendant_app/ # Tablet app
-└── backend/          # Firebase functions
 ```
 
 ## 🎨 Design System
@@ -128,9 +124,9 @@ The app follows a consistent design system with:
 
 ## 🔒 Security
 
-- Firebase Authentication with multiple providers
+- Appwrite Authentication with multiple providers
 - Secure payment processing via Chapa
-- Role-based access control
+- Role-based access control (RBAC)
 - Data validation and sanitization
 
 ## 📊 Analytics
@@ -147,10 +143,12 @@ The app follows a consistent design system with:
 - Attendant App: Internal distribution or Play Store
 
 ### Web App
-- Admin Panel: Firebase Hosting
+- Admin Panel: Flutter Web hosted on your preferred platform
 
 ### Backend
-- Firebase Functions for serverless backend
+- Appwrite Cloud or self-hosted Appwrite instance
+
+
 
 ## 📄 License
 

@@ -209,7 +209,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Icon or Image section
-          Container(
+          SizedBox(
             height: 300,
             width: double.infinity,
             child: data.useImage
