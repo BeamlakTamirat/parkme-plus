@@ -1,6 +1,6 @@
-// Simple Appwrite Services
-export 'auth/simple_auth_service.dart';
-export 'database/simple_database_service.dart';
+// Comprehensive Appwrite Services
+export 'auth/comprehensive_auth_service.dart';
+export 'database/database_service.dart';
 
 // Payment Services (unchanged)
 export 'payment/chapa_service.dart';

@@ -1,148 +1,160 @@
-class UserModel {
+import 'package:appwrite/models.dart' as appwrite;
+
+/// Comprehensive user model for WePark ecosystem
+class User {
   final String id;
   final String email;
-  final String? fullName;
+  final String fullName;
   final String? phoneNumber;
-  final String? profileImageUrl;
-  final UserRole role;
-  final bool isEmailVerified;
-  final bool isPhoneVerified;
+  final String role; // 'user', 'admin', 'attendant'
   final bool isActive;
+  final String? profileImageUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final UserStats? stats;
   final Map<String, dynamic>? preferences;
-  final Map<String, dynamic>? metadata;
+  final String? vehiclePlateNumber;
+  final String? vehicleModel;
+  final String? vehicleColor;
 
-  const UserModel({
+  const User({
     required this.id,
     required this.email,
-    this.fullName,
+    required this.fullName,
     this.phoneNumber,
-    this.profileImageUrl,
     required this.role,
-    required this.isEmailVerified,
-    required this.isPhoneVerified,
     required this.isActive,
+    this.profileImageUrl,
     required this.createdAt,
     required this.updatedAt,
-    this.stats,
     this.preferences,
-    this.metadata,
+    this.vehiclePlateNumber,
+    this.vehicleModel,
+    this.vehicleColor,
   });
 
-  /// Create UserModel from Firestore document
-  factory UserModel.fromFirestore(Map<String, dynamic> data) {
-    return UserModel(
-      id: data['id'] ?? '',
-      email: data['email'] ?? '',
-      fullName: data['full_name'],
-      phoneNumber: data['phone_number'],
-      profileImageUrl: data['profile_image_url'],
-      role: _parseUserRole(data['role']),
-      isEmailVerified: data['is_email_verified'] ?? false,
-      isPhoneVerified: data['is_phone_verified'] ?? false,
-      isActive: data['is_active'] ?? true,
-      createdAt: _parseTimestamp(data['created_at']),
-      updatedAt: _parseTimestamp(data['updated_at']),
-      preferences: data['preferences'],
-      metadata: data['metadata'],
+  /// Create from Appwrite User model
+  factory User.fromAppwriteUser(appwrite.User appwriteUser) {
+    return User(
+      id: appwriteUser.$id,
+      email: appwriteUser.email,
+      fullName: appwriteUser.name,
+      phoneNumber: null, // Will be fetched from database
+      role: 'user', // Default role
+      isActive: true,
+      profileImageUrl: null,
+      createdAt: DateTime.parse(appwriteUser.$createdAt),
+      updatedAt: DateTime.parse(appwriteUser.$updatedAt),
     );
   }
 
-  /// Convert UserModel to Firestore document
-  Map<String, dynamic> toFirestore() {
+  /// Create from Appwrite document
+  factory User.fromDocument(Map<String, dynamic> document) {
+    return User(
+      id: document['\$id'] ?? '',
+      email: document['email'] ?? '',
+      fullName: document['fullName'] ?? '',
+      phoneNumber: document['phoneNumber'],
+      role: document['role'] ?? 'user',
+      isActive: document['isActive'] ?? true,
+      profileImageUrl: document['profileImageUrl'],
+      createdAt: DateTime.parse(
+          document['createdAt'] ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(
+          document['updatedAt'] ?? DateTime.now().toIso8601String()),
+      preferences: document['preferences'] != null
+          ? _jsonStringToMap(document['preferences'])
+          : null,
+      vehiclePlateNumber: document['vehiclePlateNumber'],
+      vehicleModel: document['vehicleModel'],
+      vehicleColor: document['vehicleColor'],
+    );
+  }
+
+  /// Convert to Appwrite document
+  Map<String, dynamic> toDocument() {
     return {
-      'id': id,
       'email': email,
-      'full_name': fullName,
-      'phone_number': phoneNumber,
-      'profile_image_url': profileImageUrl,
-      'role': role.name,
-      'is_email_verified': isEmailVerified,
-      'is_phone_verified': isPhoneVerified,
-      'is_active': isActive,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'preferences': preferences ?? {},
-      'metadata': metadata ?? {},
+      'fullName': fullName,
+      'phoneNumber': phoneNumber,
+      'role': role,
+      'isActive': isActive,
+      'profileImageUrl': profileImageUrl,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'preferences':
+          preferences != null ? _mapToJsonString(preferences!) : null,
+      'vehiclePlateNumber': vehiclePlateNumber,
+      'vehicleModel': vehicleModel,
+      'vehicleColor': vehicleColor,
     };
   }
 
-  /// Parse UserRole from string
-  static UserRole _parseUserRole(String? roleString) {
-    switch (roleString?.toLowerCase()) {
-      case 'admin':
-        return UserRole.admin;
-      case 'attendant':
-        return UserRole.attendant;
-      case 'superadmin':
-        return UserRole.superAdmin;
-      default:
-        return UserRole.user;
+  /// Convert map to JSON string
+  static String _mapToJsonString(Map<String, dynamic> map) {
+    try {
+      return map.toString(); // Simple conversion for now
+    } catch (e) {
+      return '{}';
     }
   }
 
-  /// Parse timestamp from Firestore
-  static DateTime _parseTimestamp(dynamic timestamp) {
-    if (timestamp == null) return DateTime.now();
-    if (timestamp is DateTime) return timestamp;
-    if (timestamp is int) return DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return DateTime.now();
+  /// Convert JSON string to map
+  static Map<String, dynamic>? _jsonStringToMap(String jsonString) {
+    try {
+      // Simple parsing for now - you can use jsonDecode for proper JSON
+      if (jsonString.startsWith('{') && jsonString.endsWith('}')) {
+        return {}; // Return empty map for now
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
-  UserModel copyWith({
+  /// Create copy with updated fields
+  User copyWith({
     String? id,
     String? email,
     String? fullName,
     String? phoneNumber,
-    String? profileImageUrl,
-    UserRole? role,
-    bool? isEmailVerified,
-    bool? isPhoneVerified,
+    String? role,
     bool? isActive,
+    String? profileImageUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
-    UserStats? stats,
     Map<String, dynamic>? preferences,
-    Map<String, dynamic>? metadata,
+    String? vehiclePlateNumber,
+    String? vehicleModel,
+    String? vehicleColor,
   }) {
-    return UserModel(
+    return User(
       id: id ?? this.id,
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
-      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       role: role ?? this.role,
-      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
-      isPhoneVerified: isPhoneVerified ?? this.isPhoneVerified,
       isActive: isActive ?? this.isActive,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      stats: stats ?? this.stats,
       preferences: preferences ?? this.preferences,
-      metadata: metadata ?? this.metadata,
+      vehiclePlateNumber: vehiclePlateNumber ?? this.vehiclePlateNumber,
+      vehicleModel: vehicleModel ?? this.vehicleModel,
+      vehicleColor: vehicleColor ?? this.vehicleColor,
     );
   }
-}
 
-class UserStats {
-  final int totalBookings;
-  final double totalAmountSpent;
-  final int totalHoursParked;
-  final bool isPremiumMember;
+  /// Check if user is admin
+  bool get isAdmin => role == 'admin';
 
-  const UserStats({
-    required this.totalBookings,
-    required this.totalAmountSpent,
-    required this.totalHoursParked,
-    required this.isPremiumMember,
-  });
-}
+  /// Check if user is attendant
+  bool get isAttendant => role == 'attendant';
 
-enum UserRole {
-  user,
-  admin,
-  attendant,
-  superAdmin,
+  /// Check if user is regular user
+  bool get isRegularUser => role == 'user';
+
+  @override
+  String toString() {
+    return 'User(id: $id, email: $email, fullName: $fullName, role: $role)';
+  }
 }

@@ -1,5 +1,5 @@
 name: shared
-description: Shared models, services, and utilities for WePark applications
+description: Shared package - MINIMAL VERSION
 version: 1.0.0+1
 
 environment:
@@ -10,54 +10,26 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # Appwrite Backend
+  # ONLY ESSENTIAL DEPENDENCIES
   appwrite: ^12.0.1
-  flutter_web_auth_2: ^3.1.1
-  
-  # State Management
   flutter_riverpod: ^2.5.1
-  
-  # HTTP and API
-  http: ^1.1.0
-  dio: ^5.4.3+1
-  json_annotation: ^4.9.0
-  
-  # Environment Variables
   flutter_dotenv: ^5.1.0
+  http: ^1.1.0
   
-  # Utilities
-  intl: ^0.18.1
-  uuid: ^4.4.0
-  crypto: ^3.0.3
+  # Added missing dependencies
+  dio: ^5.4.0
+  uuid: ^4.2.1
+  intl: ^0.19.0
   
-  # Location & Maps
-  geolocator: ^11.0.0
-
-  
-  # Device & Permissions
-  permission_handler: ^11.3.1
-  device_info_plus: ^10.1.0
-  package_info_plus: ^8.0.0
-  
-  # Image handling
-  cached_network_image: ^3.3.1
-  
-  # QR Code
-  qr_flutter: ^4.1.0
-  
-  # Local notifications
-  flutter_local_notifications: ^17.1.2
-  
-  # URL launcher
-  url_launcher: ^6.2.6
+  # Gebeta Maps integration (REAL GEBETA MAPS)
+  # Note: Replace with actual Gebeta Maps Flutter package when available
+  # For now, using a custom implementation with Dio for API calls
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  build_runner: ^2.4.6
-  json_serializable: ^6.10.0
 
 flutter:
-  assets:
-    - assets/
