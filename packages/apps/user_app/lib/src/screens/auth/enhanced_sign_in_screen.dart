@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/simple_providers.dart';
+import '../../providers/comprehensive_providers.dart';
 
-class SimpleSignInScreen extends ConsumerStatefulWidget {
-  const SimpleSignInScreen({super.key});
+class EnhancedSignInScreen extends ConsumerStatefulWidget {
+  const EnhancedSignInScreen({super.key});
 
   @override
-  ConsumerState<SimpleSignInScreen> createState() => _SimpleSignInScreenState();
+  ConsumerState<EnhancedSignInScreen> createState() =>
+      _EnhancedSignInScreenState();
 }
 
-class _SimpleSignInScreenState extends ConsumerState<SimpleSignInScreen>
+class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -187,15 +188,18 @@ class _SimpleSignInScreenState extends ConsumerState<SimpleSignInScreen>
                                   prefixIcon: const Icon(Icons.email_outlined),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey[300]!),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey[300]!),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
-                                    borderSide: const BorderSide(color: Colors.orange, width: 2),
+                                    borderSide: const BorderSide(
+                                        color: Colors.orange, width: 2),
                                   ),
                                   filled: true,
                                   fillColor: Colors.grey[50],
@@ -233,15 +237,18 @@ class _SimpleSignInScreenState extends ConsumerState<SimpleSignInScreen>
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey[300]!),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey[300]!),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
-                                    borderSide: const BorderSide(color: Colors.orange, width: 2),
+                                    borderSide: const BorderSide(
+                                        color: Colors.orange, width: 2),
                                   ),
                                   filled: true,
                                   fillColor: Colors.grey[50],
@@ -306,9 +313,11 @@ class _SimpleSignInScreenState extends ConsumerState<SimpleSignInScreen>
                               const SizedBox(height: 20),
                               Row(
                                 children: [
-                                  Expanded(child: Divider(color: Colors.grey[300])),
+                                  Expanded(
+                                      child: Divider(color: Colors.grey[300])),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
                                     child: Text(
                                       'or continue with',
                                       style: TextStyle(
@@ -317,7 +326,8 @@ class _SimpleSignInScreenState extends ConsumerState<SimpleSignInScreen>
                                       ),
                                     ),
                                   ),
-                                  Expanded(child: Divider(color: Colors.grey[300])),
+                                  Expanded(
+                                      child: Divider(color: Colors.grey[300])),
                                 ],
                               ),
                               const SizedBox(height: 24),
@@ -369,7 +379,8 @@ class _SimpleSignInScreenState extends ConsumerState<SimpleSignInScreen>
                                   TextButton(
                                     onPressed: () => context.go('/sign-up'),
                                     style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8),
                                     ),
                                     child: const Text(
                                       'Sign Up',
@@ -403,7 +414,7 @@ class _SimpleSignInScreenState extends ConsumerState<SimpleSignInScreen>
     ref.read(isLoadingProvider.notifier).state = true;
 
     try {
-      final authService = ref.read(simpleAuthProvider);
+      final authService = ref.read(comprehensiveAuthProvider);
       final result = await authService.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -411,6 +422,10 @@ class _SimpleSignInScreenState extends ConsumerState<SimpleSignInScreen>
 
       if (mounted) {
         if (result.success) {
+          // Refresh user data to ensure we get the latest user info
+          ref.invalidate(currentUserProvider);
+          ref.invalidate(isAuthenticatedProvider);
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result.message),

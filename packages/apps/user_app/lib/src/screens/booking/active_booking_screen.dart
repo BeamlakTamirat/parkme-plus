@@ -2,7 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared/shared.dart';
+import '../../providers/comprehensive_providers.dart';
 
 class ActiveBookingScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? bookingData;
@@ -20,11 +21,14 @@ class ActiveBookingScreen extends ConsumerStatefulWidget {
 class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
   Timer? _timer;
   Duration _timeRemaining = const Duration(hours: 2, minutes: 15, seconds: 43);
+  Booking? _currentBooking;
+  bool _isCreatingBooking = false;
 
   @override
   void initState() {
     super.initState();
     _startTimer();
+    _handleBookingData();
   }
 
   @override
@@ -45,14 +49,123 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
     });
   }
 
+  void _handleBookingData() {
+    final bookingData = widget.bookingData;
+    if (bookingData != null && bookingData['action'] == 'create') {
+      final location = bookingData['location'] as ParkingLocation?;
+      if (location != null) {
+        _createBooking(location);
+      }
+    }
+  }
+
+  Future<void> _createBooking(ParkingLocation location) async {
+    setState(() {
+      _isCreatingBooking = true;
+    });
+
+    try {
+      final currentUser = await ref.read(currentUserProvider.future);
+      if (currentUser == null) {
+        throw Exception('User not found');
+      }
+
+      final bookingData = {
+        'userId': currentUser.id,
+        'parkingLocationId': location.id,
+        'spotNumber':
+            'A${DateTime.now().millisecondsSinceEpoch % 100}', // Generate spot number
+        'vehiclePlateNumber': currentUser.vehiclePlateNumber ?? 'UNKNOWN',
+        'vehicleModel': currentUser.vehicleModel,
+        'vehicleColor': currentUser.vehicleColor,
+        'startTime': DateTime.now().toIso8601String(),
+        'endTime':
+            DateTime.now().add(const Duration(hours: 2)).toIso8601String(),
+        'totalAmount': location.hourlyRate * 2, // 2 hours
+        'status': 'pending',
+        'paymentStatus': 'pending',
+        'qrCode': 'WEPARK_QR_${DateTime.now().millisecondsSinceEpoch}',
+      };
+
+      final result = await ref.read(createBookingProvider(bookingData).future);
+
+      if (result.success && result.booking != null) {
+        setState(() {
+          _currentBooking = result.booking;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Booking created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        throw Exception(result.message);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create booking: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isCreatingBooking = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final location = widget.bookingData?['location'] ?? 'Meskel Square Parking';
-    final space = widget.bookingData?['space'] ?? 'A12 (Level 1)';
+    if (_isCreatingBooking) {
+      return Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text(
+            'Creating Booking',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                'Creating your booking...',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Use actual booking data if available, otherwise use defaults
+    final location = _currentBooking != null
+        ? 'Parking Location' // We'll get this from the booking
+        : widget.bookingData?['location']?.name ?? 'Meskel Square Parking';
+    final space = _currentBooking?.spotNumber ?? 'A12 (Level 1)';
     final vehicle =
-        widget.bookingData?['vehicle'] ?? 'Toyota Corolla (AA-123-456)';
-    final startTime = widget.bookingData?['startTime'] ?? '9:00 AM';
-    final endTime = widget.bookingData?['endTime'] ?? '5:00 PM';
+        _currentBooking?.vehiclePlateNumber ?? 'Toyota Corolla (AA-123-456)';
+    final startTime = _currentBooking?.formattedStartTime ?? '9:00 AM';
+    final endTime = _currentBooking?.formattedEndTime ?? '5:00 PM';
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -299,12 +412,23 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                     ),
                   ],
                 ),
-                child: QrImageView(
-                  data:
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.qr_code,
+                      size: 80,
+                      color: Colors.black87,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
                       'WEPARK:BOOKING:${DateTime.now().millisecondsSinceEpoch}:A12',
-                  version: QrVersions.auto,
-                  size: 120.0,
-                  foregroundColor: Colors.black87,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),

@@ -1,13 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'routes/simple_app_router.dart';
+import 'routes/comprehensive_app_router.dart';
+import 'providers/comprehensive_providers.dart';
+import 'package:shared/shared.dart';
 
-class WeParkApp extends ConsumerWidget {
+class WeParkApp extends ConsumerStatefulWidget {
   const WeParkApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(simpleRouterProvider);
+  ConsumerState<WeParkApp> createState() => _WeParkAppState();
+}
+
+class _WeParkAppState extends ConsumerState<WeParkApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Set up auth state callback
+    final authService = ComprehensiveAuthService.instance;
+    authService.setAuthStateCallback(() {
+      // Trigger auth state change to refresh providers
+      ref.read(authStateProvider.notifier).state =
+          DateTime.now().toIso8601String();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final router = ref.watch(comprehensiveRouterProvider);
 
     return MaterialApp.router(
       title: 'WePark',
