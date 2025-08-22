@@ -205,7 +205,7 @@ class Booking {
   }
 
   /// Get formatted total amount
-  String get formattedTotalAmount => '\$${totalAmount.toStringAsFixed(2)}';
+  String get formattedTotalAmount => '${totalAmount.toStringAsFixed(0)} ETB';
 
   /// Get formatted start time
   String get formattedStartTime =>
@@ -216,6 +216,14 @@ class Booking {
     if (endTime == null) return 'Ongoing';
     return '${endTime!.day}/${endTime!.month}/${endTime!.year} ${endTime!.hour}:${endTime!.minute.toString().padLeft(2, '0')}';
   }
+
+  /// Get formatted created at date
+  String get formattedCreatedAt =>
+      '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+
+  /// Get formatted updated at date
+  String get formattedUpdatedAt =>
+      '${updatedAt.day}/${updatedAt.month}/${updatedAt.year}';
 
   @override
   String toString() {

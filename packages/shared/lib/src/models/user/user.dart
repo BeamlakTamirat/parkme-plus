@@ -111,6 +111,14 @@ class User {
     }
   }
 
+  /// Get formatted created at date
+  String get formattedCreatedAt =>
+      '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+
+  /// Get formatted updated at date
+  String get formattedUpdatedAt =>
+      '${updatedAt.day}/${updatedAt.month}/${updatedAt.year}';
+
   /// Create copy with updated fields
   User copyWith({
     String? id,
