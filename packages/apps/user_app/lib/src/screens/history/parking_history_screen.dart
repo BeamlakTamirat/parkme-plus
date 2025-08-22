@@ -331,25 +331,31 @@ class ParkingHistoryScreen extends ConsumerWidget {
                   color: Colors.grey[500],
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  date,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
+                Expanded(
+                  child: Text(
+                    date,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
                 Icon(
                   Icons.access_time,
                   size: 16,
                   color: Colors.grey[500],
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
+                Expanded(
+                  child: Text(
+                    time,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
