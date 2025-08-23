@@ -243,7 +243,7 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
           children: [
             Text(message),
             const SizedBox(height: 16),
-            Text('Booking Details:',
+            const Text('Booking Details:',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             Text('Vehicle: ${booking.vehiclePlateNumber}'),
             Text('Spot: ${booking.spotNumber}'),
@@ -330,7 +330,7 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
 
         // Scanning overlay
         Container(
-          decoration: ShapeDecoration(
+          decoration: const ShapeDecoration(
             shape: QrScannerOverlayShape(
               borderColor: Colors.white,
               borderRadius: 10,

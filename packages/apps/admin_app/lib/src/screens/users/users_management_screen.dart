@@ -740,8 +740,8 @@ class UserDetailsDialog extends StatelessWidget {
           _buildDetailRow('Phone', user.phoneNumber ?? 'Not provided'),
           _buildDetailRow('Role', user.role.toUpperCase()),
           _buildDetailRow('Status', user.isActive ? 'Active' : 'Inactive'),
-          _buildDetailRow('Created', user.createdAt?.toString() ?? 'Unknown'),
-          _buildDetailRow('Updated', user.updatedAt?.toString() ?? 'Unknown'),
+          _buildDetailRow('Created', user.createdAt.toString() ?? 'Unknown'),
+          _buildDetailRow('Updated', user.updatedAt.toString() ?? 'Unknown'),
           if (user.vehiclePlateNumber != null)
             _buildDetailRow('Vehicle Plate', user.vehiclePlateNumber!),
           if (user.vehicleModel != null)

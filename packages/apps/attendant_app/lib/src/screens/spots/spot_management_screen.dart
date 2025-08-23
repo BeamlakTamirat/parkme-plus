@@ -102,8 +102,8 @@ class _SpotManagementScreenState extends ConsumerState<SpotManagementScreen> {
             ? FloatingActionButton(
                 onPressed: () => _showBulkActionsDialog(location),
                 backgroundColor: Colors.blue[700],
-                child: const Icon(Icons.dashboard_customize),
                 tooltip: 'Bulk Actions',
+                child: const Icon(Icons.dashboard_customize),
               )
             : null,
         orElse: () => null,
@@ -295,7 +295,7 @@ class _SpotManagementScreenState extends ConsumerState<SpotManagementScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${location.formattedHourlyRate}',
+                  location.formattedHourlyRate,
                   style: TextStyle(
                     color: Colors.green[600],
                     fontSize: 16,
