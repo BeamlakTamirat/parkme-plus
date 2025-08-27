@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Parking location model for WePark ecosystem
 class ParkingLocation {
   final String id;
@@ -38,12 +40,24 @@ class ParkingLocation {
 
   /// Create from Appwrite document
   factory ParkingLocation.fromDocument(Map<String, dynamic> document) {
+    final rawLat = document['latitude'];
+    final rawLng = document['longitude'];
+    final latitude = (rawLat ?? 0.0).toDouble();
+    final longitude = (rawLng ?? 0.0).toDouble();
+
+    // Debug coordinate parsing
+    if (kDebugMode) {
+      print('🗺️ Parsing location: ${document['name']}');
+      print('   Raw coordinates: lat=$rawLat, lng=$rawLng');
+      print('   Parsed coordinates: lat=$latitude, lng=$longitude');
+    }
+
     return ParkingLocation(
       id: document['\$id'] ?? '',
       name: document['name'] ?? '',
       address: document['address'] ?? '',
-      latitude: (document['latitude'] ?? 0.0).toDouble(),
-      longitude: (document['longitude'] ?? 0.0).toDouble(),
+      latitude: latitude,
+      longitude: longitude,
       totalSpots: document['totalSpots'] ?? 0,
       availableSpots: document['availableSpots'] ?? 0,
       hourlyRate: (document['hourlyRate'] ?? 0.0).toDouble(),
@@ -72,8 +86,10 @@ class ParkingLocation {
       'hourlyRate': hourlyRate,
       'isActive': isActive,
       'description': description,
-      'amenities': amenities,
-      'images': images,
+      // 🔧 FIX: Convert amenities List<String> to comma-separated string
+      'amenities': amenities?.join(','),
+      // 🔧 FIX: Convert images List<String> to comma-separated string
+      'images': images?.join(','),
       'attendantId': attendantId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -179,8 +195,6 @@ class ParkingLocation {
       try {
         // Try to parse as JSON
         if (value.startsWith('{') && value.endsWith('}')) {
-          // For now, just return empty map for JSON strings
-          // You can implement proper JSON parsing if needed
           return <String, dynamic>{};
         }
       } catch (e) {

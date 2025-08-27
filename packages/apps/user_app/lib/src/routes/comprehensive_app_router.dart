@@ -12,7 +12,7 @@ import '../screens/parking/find_parking_screen.dart';
 import '../screens/history/parking_history_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/booking/active_booking_screen.dart';
-import '../screens/qr_scanner/qr_scanner_screen.dart';
+
 import '../screens/payment/enhanced_payment_screen.dart';
 import '../screens/maps/maps_screen.dart';
 import '../screens/debug/database_debug_screen.dart';
@@ -84,13 +84,6 @@ final comprehensiveRouterProvider = Provider<GoRouter>((ref) {
           final extra = state.extra as Map<String, dynamic>?;
           return ActiveBookingScreen(bookingData: extra);
         },
-      ),
-
-      // QR Scanner route
-      GoRoute(
-        path: '/qr-scanner',
-        name: 'qr-scanner',
-        builder: (context, state) => const QRScannerScreen(),
       ),
 
       // Profile route

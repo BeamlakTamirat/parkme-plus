@@ -14,9 +14,9 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
   ParkingLocation? _selectedLocation;
   bool _isLoading = true;
 
-  // Default center (Addis Ababa)
-  static const double _defaultLatitude = 9.0054;
-  static const double _defaultLongitude = 38.7636;
+  // Default center (Meskel Square - Famous landmark in Addis Ababa)
+  static const double _defaultLatitude = 9.0120;
+  static const double _defaultLongitude = 38.7634;
 
   @override
   void initState() {
@@ -26,7 +26,7 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
 
   Future<void> _loadParkingLocations() async {
     try {
-      final mapsService = GebetaMapsService.instance;
+      final mapsService = MapboxService.instance;
       final locations = await mapsService.searchNearbyParking(
         _defaultLatitude,
         _defaultLongitude,
@@ -304,7 +304,7 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          'Gebeta Maps',
+          'Mapbox Maps',
           style: TextStyle(
             color: Colors.black87,
             fontSize: 18,
@@ -320,19 +320,23 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
       ),
       body: Column(
         children: [
-          // Gebeta Maps Widget
+          // Mapbox Widget
           Expanded(
             flex: 2,
             child: Container(
               margin: const EdgeInsets.all(16),
-              child: GebetaMapsWidget(
-                initialLatitude: _defaultLatitude,
-                initialLongitude: _defaultLongitude,
-                zoom: 15.0,
+              child: InteractiveMapboxWidget(
+                centerLat: _defaultLatitude,
+                centerLng: _defaultLongitude,
+                initialZoom: 15.0,
                 parkingLocations: _parkingLocations,
-                onLocationSelected: _onLocationSelected,
+                onLocationSelected: (lat, lng) {
+                  // Handle location selection differently for interactive map
+                  print('📍 Location selected: $lat, $lng');
+                },
                 showMarkers: true,
                 showCurrentLocation: true,
+                showZoomControls: true,
               ),
             ),
           ),

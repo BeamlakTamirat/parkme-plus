@@ -6,7 +6,6 @@ import '../../providers/comprehensive_providers.dart';
 import '../parking/find_parking_screen.dart';
 import '../history/parking_history_screen.dart';
 import '../profile/profile_screen.dart';
-import '../qr_scanner/qr_scanner_screen.dart';
 
 class ComprehensiveHomeScreen extends ConsumerStatefulWidget {
   const ComprehensiveHomeScreen({super.key});
@@ -28,7 +27,6 @@ class _ComprehensiveHomeScreenState
       const FindParkingScreen(),
       const ParkingHistoryScreen(),
       const ProfileScreen(),
-      const QRScannerScreen(),
     ];
 
     return Scaffold(
@@ -83,12 +81,6 @@ class _ComprehensiveHomeScreenState
                 activeIcon: Icons.person,
                 label: 'Profile',
                 index: 3,
-              ),
-              _buildNavItem(
-                icon: Icons.qr_code_scanner_outlined,
-                activeIcon: Icons.qr_code_scanner,
-                label: 'QR',
-                index: 4,
               ),
             ],
           ),
@@ -334,10 +326,10 @@ class _HomeContent extends ConsumerWidget {
             children: [
               Expanded(
                 child: _buildActionCard(
-                  title: 'QR Scanner',
-                  icon: Icons.qr_code_scanner,
-                  color: Colors.purple,
-                  onTap: () => _openQRScanner(context),
+                  title: 'Emergency',
+                  icon: Icons.emergency,
+                  color: Colors.red,
+                  onTap: () => _showEmergencyContact(context),
                 ),
               ),
               const SizedBox(width: 12),
@@ -554,9 +546,52 @@ class _HomeContent extends ConsumerWidget {
     onTabChanged(2);
   }
 
-  void _openQRScanner(BuildContext context) {
-    // Switch to QR Scanner tab in bottom navigation
-    onTabChanged(4); // QR Scanner is now at index 4
+  void _showEmergencyContact(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Emergency Contact'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('For parking emergencies or assistance:'),
+            SizedBox(height: 16),
+            Text(
+              'Emergency Hotline:\n+251-911-123-456',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // This would open the phone dialer
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Opening phone dialer...'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Call Now'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showProfile(BuildContext context) {

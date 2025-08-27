@@ -7,6 +7,7 @@ class AppwriteConfig {
   static Client? _client;
   static Account? _account;
   static Databases? _databases;
+  static Storage? _storage;
   static bool _isInitialized = false;
 
   // Getters for Appwrite services
@@ -29,6 +30,14 @@ class AppwriteConfig {
       throw Exception('Appwrite not initialized. Call initialize() first.');
     }
     return _databases!;
+  }
+
+  // 🖼️ ADD STORAGE GETTER
+  static Storage get storage {
+    if (_storage == null) {
+      throw Exception('Appwrite not initialized. Call initialize() first.');
+    }
+    return _storage!;
   }
 
   // Environment variables
@@ -80,6 +89,7 @@ class AppwriteConfig {
       // Initialize services
       _account = Account(_client!);
       _databases = Databases(_client!);
+      _storage = Storage(_client!); // 🖼️ INITIALIZE STORAGE
 
       _isInitialized = true;
 
