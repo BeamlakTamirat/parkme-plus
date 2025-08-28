@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared/shared.dart';
+import 'package:image_picker/image_picker.dart'; // 📸 Image picker
+import 'dart:io';
 import '../../providers/admin_providers.dart';
 
 class LocationsManagementScreen extends ConsumerStatefulWidget {
@@ -531,6 +533,10 @@ class _CreateLocationDialogState extends ConsumerState<CreateLocationDialog> {
   String? _selectedAttendantId;
   bool _isLoading = false;
 
+  final List<XFile> _selectedImages = [];
+  final ImagePicker _imagePicker = ImagePicker();
+  bool _isUploadingImages = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -712,6 +718,11 @@ class _CreateLocationDialogState extends ConsumerState<CreateLocationDialog> {
                   maxLines: 3,
                 ),
                 const SizedBox(height: 16),
+
+                // 📸 IMAGE UPLOAD SECTION
+                _buildImageUploadSection(),
+                const SizedBox(height: 16),
+
                 TextFormField(
                   controller: _amenitiesController,
                   decoration: const InputDecoration(
@@ -744,6 +755,189 @@ class _CreateLocationDialogState extends ConsumerState<CreateLocationDialog> {
     );
   }
 
+  // 📸 BUILD IMAGE UPLOAD SECTION
+  Widget _buildImageUploadSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.image, color: Colors.blue),
+            const SizedBox(width: 8),
+            const Text(
+              'Parking Images',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: _isUploadingImages ? null : _pickImages,
+              icon: const Icon(Icons.add_photo_alternate),
+              label: const Text('Add Photos'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_selectedImages.isNotEmpty) ...[
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _selectedImages.length,
+              itemBuilder: (context, index) {
+                final image = _selectedImages[index];
+                return Container(
+                  width: 120,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          File(image.path),
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 120,
+                              height: 120,
+                              color: Colors.grey[200],
+                              child: const Icon(
+                                Icons.error,
+                                color: Colors.red,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _removeImage(index),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '· ${_selectedImages.length} image(s) selected',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          Text(
+            '· Images will help users identify the parking area',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[500],
+            ),
+          ),
+        ] else
+          Container(
+            height: 80,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: InkWell(
+              onTap: _isUploadingImages ? null : _pickImages,
+              borderRadius: BorderRadius.circular(8),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 32,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap to add parking images',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // 📸 PICK IMAGES FROM GALLERY
+  Future<void> _pickImages() async {
+    try {
+      final List<XFile> pickedFiles = await _imagePicker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 80,
+      );
+
+      if (pickedFiles.isNotEmpty) {
+        setState(() {
+          // Limit to maximum 5 images
+          final remainingSlots = 5 - _selectedImages.length;
+          final imagesToAdd = pickedFiles.take(remainingSlots).toList();
+          _selectedImages.addAll(imagesToAdd);
+        });
+
+        if (pickedFiles.length >
+            5 - (_selectedImages.length - pickedFiles.length)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Maximum 5 images allowed'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking images: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // 📸 REMOVE SELECTED IMAGE
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
   Future<void> _createLocation() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -756,6 +950,38 @@ class _CreateLocationDialogState extends ConsumerState<CreateLocationDialog> {
       final amenities = _amenitiesController.text.trim().isEmpty
           ? <String>[]
           : _amenitiesController.text.split(',').map((e) => e.trim()).toList();
+
+      // 📸 UPLOAD IMAGES FIRST
+      List<String> imageUrls = [];
+      if (_selectedImages.isNotEmpty) {
+        setState(() {
+          _isUploadingImages = true;
+        });
+
+        final locationName = _nameController.text.trim().replaceAll(' ', '_');
+        final storageService = StorageService.instance;
+
+        for (int i = 0; i < _selectedImages.length; i++) {
+          final image = _selectedImages[i];
+          final fileName =
+              '${locationName}_image_${i + 1}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+          final fileId = await storageService.uploadParkingImage(
+            locationId: locationName,
+            file: File(image.path),
+            fileName: fileName,
+          );
+
+          if (fileId != null) {
+            final imageUrl = storageService.getImageUrl(fileId);
+            imageUrls.add(imageUrl);
+          }
+        }
+
+        setState(() {
+          _isUploadingImages = false;
+        });
+      }
 
       final locationData = {
         'name': _nameController.text.trim(),
@@ -770,6 +996,7 @@ class _CreateLocationDialogState extends ConsumerState<CreateLocationDialog> {
             ? null
             : _descriptionController.text.trim(),
         'amenities': amenities,
+        'images': imageUrls, // 📸 ADD UPLOADED IMAGE URLS
         'attendantId': _selectedAttendantId,
         'createdAt': DateTime.now().toIso8601String(),
         'updatedAt': DateTime.now().toIso8601String(),

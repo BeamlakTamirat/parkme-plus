@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,22 +46,22 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Search and filter section
-            _buildSearchSection(),
+      body: Column(
+        children: [
+          // Search and filter section
+          _buildSearchSection(),
 
-            // Map view toggle section
-            if (_showMapView) _buildMapViewSection(),
+          // Map view toggle section
+          if (_showMapView) _buildMapViewSection(),
 
-            // Filter chips
-            _buildFilterSection(),
+          // Filter chips
+          _buildFilterSection(),
 
-            // Available parking list
-            _buildParkingList(),
-          ],
-        ),
+          // Available parking list - now scrollable
+          Expanded(
+            child: _buildParkingList(),
+          ),
+        ],
       ),
     );
   }
@@ -68,24 +69,24 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   Widget _buildSearchSection() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.search,
                     color: Colors.grey[500],
-                    size: 20,
+                    size: 16,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       controller: _searchController,
@@ -93,7 +94,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                         hintText: 'Search location...',
                         hintStyle: TextStyle(
                           color: Colors.grey[500],
-                          fontSize: 16,
+                          fontSize: 14,
                         ),
                         border: InputBorder.none,
                       ),
@@ -103,17 +104,17 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
               Icons.my_location,
               color: Colors.orange,
-              size: 20,
+              size: 16,
             ),
           ),
         ],
@@ -130,35 +131,35 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
         children: [
           // Map header with toggle
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Row(
-              children: [
+        children: [
                 const Icon(
                   Icons.map,
                   color: Colors.orange,
-                  size: 20,
+                  size: 18,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 const Text(
-                  'Interactive Map View',
+                  'Static Map View',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const Spacer(),
-                Container(
+          Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     'Live',
-                    style: TextStyle(
+                style: TextStyle(
                       color: Colors.orange,
-                      fontSize: 12,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -192,9 +193,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
-                      ),
-                    ],
                   ),
+                ],
+              ),
                 ),
               ),
               error: (error, _) => Container(
@@ -206,8 +207,8 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
+                children: [
+                  Icon(
                         Icons.error_outline,
                         size: 48,
                         color: Colors.red[400],
@@ -224,30 +225,33 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Unable to load parking locations',
-                        style: TextStyle(
-                          fontSize: 14,
+                    style: TextStyle(
+                      fontSize: 14,
                           color: Colors.red[600],
-                        ),
+                    ),
                         textAlign: TextAlign.center,
-                      ),
-                    ],
                   ),
-                ),
+                ],
               ),
-              data: (parkingLocations) => GebetaMapsWidget(
-                initialLatitude: 9.0054, // Addis Ababa center
-                initialLongitude: 38.7636,
-                zoom: 15.0,
+            ),
+          ),
+              data: (parkingLocations) => InteractiveMapboxWidget(
+                centerLat:
+                    9.0120, // Meskel Square - Famous landmark in Addis Ababa
+                centerLng: 38.7634,
+                initialZoom: 15.0,
                 parkingLocations: parkingLocations,
-                onLocationSelected: (location) =>
-                    _onMapLocationSelected(location),
+                onLocationSelected:
+                    null, // Makes map static - no tap interactions
                 showMarkers: true,
                 showCurrentLocation: true,
+                showZoomControls:
+                    false, // Hide zoom controls for static appearance
               ),
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 4),
         ],
       ),
     );
@@ -284,19 +288,19 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           _selectedFilter = value;
         });
       },
-      child: Container(
+                child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
+                  decoration: BoxDecoration(
           color: isSelected ? Colors.orange : Colors.grey[100],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
           label,
-          style: TextStyle(
+                    style: TextStyle(
             color: isSelected ? Colors.white : Colors.grey[700],
-            fontSize: 14,
+                      fontSize: 14,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          ),
+                  ),
         ),
       ),
     );
@@ -313,9 +317,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       error: (error, _) => SizedBox(
         height: 200,
         child: Center(
-          child: Column(
+      child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        children: [
               const Icon(Icons.error, size: 64, color: Colors.red),
               const SizedBox(height: 16),
               Text('Error: $error'),
@@ -335,13 +339,13 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+              children: [
                   Icon(Icons.local_parking, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'No parking locations found',
-                    style: TextStyle(
-                      fontSize: 18,
+                  style: TextStyle(
+                    fontSize: 18,
                       fontWeight: FontWeight.w500,
                       color: Colors.grey[600],
                     ),
@@ -352,17 +356,15 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[500],
-                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
           );
         }
 
         return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           itemCount: parkingLocations.length,
           itemBuilder: (context, index) {
@@ -396,47 +398,41 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       ),
       child: Column(
         children: [
-          // Image placeholder
-          Container(
+          // 📸 REAL PARKING IMAGES
+              Container(
             height: 120,
-            decoration: BoxDecoration(
+                decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
               ),
             ),
-            child: Center(
-              child: Icon(
-                Icons.local_parking,
-                size: 48,
-                color: Colors.grey[400],
-              ),
-            ),
+            child: _buildLocationImage(location),
           ),
 
           // Content
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Row(
                   children: [
                     Expanded(
                       child: Text(
                         location.name,
-                        style: const TextStyle(
+                      style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                        color: Colors.black87,
                       ),
+                    ),
                     ),
                     const Row(
                       children: [
                         Icon(
-                          Icons.star,
+                            Icons.star,
                           size: 16,
                           color: Colors.orange,
                         ),
@@ -463,7 +459,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(
+              Icon(
                       Icons.location_on,
                       size: 16,
                       color: Colors.grey[500],
@@ -485,25 +481,25 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     const SizedBox(width: 4),
                     Text(
                       '${location.availableSpots}/${location.totalSpots} available',
-                      style: TextStyle(
+                  style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text(
+                  ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
                       location.formattedHourlyRate,
-                      style: const TextStyle(
+                style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                         color: Colors.orange,
-                      ),
-                    ),
-                    const Spacer(),
+                ),
+              ),
+              const Spacer(),
                     ElevatedButton(
                       onPressed: () => _bookParking(context, location),
                       style: ElevatedButton.styleFrom(
@@ -518,6 +514,129 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   ],
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 📸 BUILD LOCATION IMAGE WITH FALLBACK
+  Widget _buildLocationImage(ParkingLocation location) {
+    // Check if location has images
+    if (location.images != null && location.images!.isNotEmpty) {
+      final imageUrl = location.images!.first;
+
+      return ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(12),
+          topRight: Radius.circular(12),
+        ),
+        child: Stack(
+          children: [
+            // Main image
+            Image.network(
+              imageUrl,
+              width: double.infinity,
+              height: 120,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  width: double.infinity,
+                  height: 120,
+                  color: Colors.grey[200],
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: Colors.orange,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return _buildImagePlaceholder();
+              },
+            ),
+
+            // Image count indicator (if multiple images)
+            if (location.images!.length > 1)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                    '${location.images!.length} photos',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              ),
+
+            // Availability indicator
+            Positioned(
+              top: 8,
+              left: 8,
+                child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 3,
+                ),
+                  decoration: BoxDecoration(
+                  color: location.hasAvailableSpots ? Colors.green : Colors.red,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                child: Text(
+                  location.hasAvailableSpots ? 'Available' : 'Full',
+                  style: const TextStyle(
+                      color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+        ),
+      );
+    } else {
+      // Fallback to placeholder if no images
+      return _buildImagePlaceholder();
+    }
+  }
+
+  // 🎨 FALLBACK PLACEHOLDER
+  Widget _buildImagePlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.local_parking,
+            size: 48,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'No image available',
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 12,
             ),
           ),
         ],
@@ -582,6 +701,48 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   void _onMapLocationSelected(ParkingLocation location) {
     // Show location details and book directly
     _showLocationDetailsDialog(context, location);
+  }
+
+  /// Find the closest parking location to the given coordinates
+  ParkingLocation? _findClosestParkingLocation(
+    List<ParkingLocation> locations,
+    double lat,
+    double lng,
+  ) {
+    if (locations.isEmpty) return null;
+
+    ParkingLocation? closestLocation;
+    double minDistance = double.infinity;
+
+    for (final location in locations) {
+      final distance = _calculateDistance(
+        lat,
+        lng,
+        location.latitude,
+        location.longitude,
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestLocation = location;
+      }
+    }
+
+    return closestLocation;
+  }
+
+  /// Calculate distance between two coordinates in meters
+  double _calculateDistance(
+      double lat1, double lng1, double lat2, double lng2) {
+    const double earthRadius = 6371000; // Earth radius in meters
+    final double dLat = (lat2 - lat1) * (math.pi / 180);
+    final double dLng = (lng2 - lng1) * (math.pi / 180);
+    final double a = (0.5 - math.cos(dLat / 2)) +
+        math.cos(lat1 * (math.pi / 180)) *
+            math.cos(lat2 * (math.pi / 180)) *
+            (1 - math.cos(dLng / 2)) /
+            2;
+    return earthRadius * 2 * math.atan(math.sqrt(a) / math.sqrt(1 - a));
   }
 
   void _bookParking(BuildContext context, ParkingLocation location) {

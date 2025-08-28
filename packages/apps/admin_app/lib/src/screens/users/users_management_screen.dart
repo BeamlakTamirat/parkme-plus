@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // 🐛 ADD: For kDebugMode
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared/shared.dart';
 import '../../providers/admin_providers.dart';
@@ -372,15 +373,25 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController(); // 🔐 NEW: Password field
   final _phoneController = TextEditingController();
+  final _vehiclePlateController =
+      TextEditingController(); // 🚗 NEW: Vehicle info
+  final _vehicleModelController = TextEditingController();
+  final _vehicleColorController = TextEditingController();
   String _selectedRole = 'user';
   bool _isLoading = false;
+  bool _obscurePassword = true; // 👁️ NEW: Password visibility toggle
 
   @override
   void dispose() {
     _fullNameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose(); // 🔐 NEW
     _phoneController.dispose();
+    _vehiclePlateController.dispose(); // 🚗 NEW
+    _vehicleModelController.dispose(); // 🚗 NEW
+    _vehicleColorController.dispose(); // 🚗 NEW
     super.dispose();
   }
 
@@ -389,70 +400,162 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
     return AlertDialog(
       title: const Text('Create New User'),
       content: SizedBox(
-        width: 400,
+        width: 500, // 📊 Increased width for more fields
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _fullNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  border: OutlineInputBorder(),
+          child: SingleChildScrollView(
+            // 📋 Make scrollable for more fields
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 📝 BASIC INFO SECTION
+                const Text(
+                  'Basic Information',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter full name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _fullNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter full name';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter email';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number (Optional)',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter email';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedRole,
-                decoration: const InputDecoration(
-                  labelText: 'Role',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                // 🔐 NEW: Password field with visibility toggle
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password *',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                    helperText: 'Admin will provide this password to the user',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter password';
+                    }
+                    if (value.length < 8) {
+                      return 'Password must be at least 8 characters';
+                    }
+                    return null;
+                  },
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'user', child: Text('User')),
-                  DropdownMenuItem(
-                      value: 'attendant', child: Text('Attendant')),
-                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number (Optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.phone),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedRole,
+                  decoration: const InputDecoration(
+                    labelText: 'Role *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.admin_panel_settings),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'user',
+                        child: Text('🚶 User (Parking Customer)')),
+                    DropdownMenuItem(
+                        value: 'attendant',
+                        child: Text('👷 Attendant (Parking Staff)')),
+                    DropdownMenuItem(
+                        value: 'admin',
+                        child: Text('👨‍💼 Admin (System Manager)')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedRole = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 24),
+                // 🚗 VEHICLE INFO SECTION (for users)
+                if (_selectedRole == 'user') ...[
+                  // 💁 Only show for users
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Vehicle Information (Optional)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _vehiclePlateController,
+                    decoration: const InputDecoration(
+                      labelText: 'Vehicle Plate Number',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.drive_eta),
+                      hintText: 'e.g., AA-12345',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _vehicleModelController,
+                    decoration: const InputDecoration(
+                      labelText: 'Vehicle Model',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.directions_car),
+                      hintText: 'e.g., Toyota Corolla',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _vehicleColorController,
+                    decoration: const InputDecoration(
+                      labelText: 'Vehicle Color',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.palette),
+                      hintText: 'e.g., White',
+                    ),
+                  ),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedRole = value!;
-                  });
-                },
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -483,9 +586,11 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
     });
 
     try {
+      // 📊 Prepare comprehensive user data
       final userData = {
         'fullName': _fullNameController.text.trim(),
-        'email': _emailController.text.trim(),
+        'email': _emailController.text.trim().toLowerCase(),
+        'password': _passwordController.text, // 🔐 NEW: Include password
         'phoneNumber': _phoneController.text.trim().isEmpty
             ? null
             : _phoneController.text.trim(),
@@ -493,17 +598,58 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
         'isActive': true,
         'createdAt': DateTime.now().toIso8601String(),
         'updatedAt': DateTime.now().toIso8601String(),
+        // 🚗 NEW: Vehicle information (for users)
+        'vehiclePlateNumber': _vehiclePlateController.text.trim().isEmpty
+            ? null
+            : _vehiclePlateController.text.trim().toUpperCase(),
+        'vehicleModel': _vehicleModelController.text.trim().isEmpty
+            ? null
+            : _vehicleModelController.text.trim(),
+        'vehicleColor': _vehicleColorController.text.trim().isEmpty
+            ? null
+            : _vehicleColorController.text.trim(),
       };
+
+      if (kDebugMode) {
+        print('📝 Creating ${_selectedRole} with data:');
+        print('   Email: ${userData['email']}');
+        print('   Name: ${userData['fullName']}');
+        print('   Role: ${userData['role']}');
+      }
 
       final result = await ref.read(createUserProvider(userData).future);
 
       if (result != null) {
         if (mounted) {
           Navigator.of(context).pop();
+
+          // 🎉 Show success message with role-specific text
+          final roleText = _selectedRole == 'user'
+              ? 'User'
+              : _selectedRole == 'attendant'
+                  ? 'Attendant'
+                  : 'Admin';
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('User created successfully'),
+            SnackBar(
+              content: Text(
+                  '🎉 $roleText "${_fullNameController.text.trim()}" created successfully!\n🔑 Email: ${_emailController.text.trim()}\n🔐 Password: ${_passwordController.text}'),
               backgroundColor: Colors.green,
+              duration: const Duration(
+                  seconds: 5), // ⏰ Longer duration to read password
+              action: SnackBarAction(
+                label: 'COPY PASSWORD',
+                textColor: Colors.white,
+                onPressed: () {
+                  // You could implement clipboard copy here
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Password details shown above'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
             ),
           );
         }
@@ -511,7 +657,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to create user'),
+              content: Text('❌ Failed to create user'),
               backgroundColor: Colors.red,
             ),
           );
@@ -521,8 +667,10 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content:
+                Text('⚠️ Error: ${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -740,8 +888,8 @@ class UserDetailsDialog extends StatelessWidget {
           _buildDetailRow('Phone', user.phoneNumber ?? 'Not provided'),
           _buildDetailRow('Role', user.role.toUpperCase()),
           _buildDetailRow('Status', user.isActive ? 'Active' : 'Inactive'),
-          _buildDetailRow('Created', user.createdAt.toString() ?? 'Unknown'),
-          _buildDetailRow('Updated', user.updatedAt.toString() ?? 'Unknown'),
+          _buildDetailRow('Created', user.formattedCreatedAt),
+          _buildDetailRow('Updated', user.formattedUpdatedAt),
           if (user.vehiclePlateNumber != null)
             _buildDetailRow('Vehicle Plate', user.vehiclePlateNumber!),
           if (user.vehicleModel != null)

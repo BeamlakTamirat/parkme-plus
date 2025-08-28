@@ -3,6 +3,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Let Mapbox plugin handle its own repository configuration
     }
 }
 

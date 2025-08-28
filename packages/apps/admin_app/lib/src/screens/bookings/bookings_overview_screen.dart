@@ -545,26 +545,383 @@ class _BookingsOverviewScreenState extends ConsumerState<BookingsOverviewScreen>
   void _showUpdateStatusDialog(Booking booking) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Booking Status'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Current status: ${booking.status.toUpperCase()}'),
-            const SizedBox(height: 16),
-            const Text(
-                'This feature is not implemented yet. Status updates should be handled by attendants through QR scanning.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+      builder: (context) => UpdateBookingStatusDialog(booking: booking),
+    ).then((_) {
+      // Refresh the bookings list after update
+      ref.invalidate(allBookingsProvider);
+    });
   }
 }
 
+// 📊 NEW: Update Booking Status Dialog
+class UpdateBookingStatusDialog extends ConsumerStatefulWidget {
+  final Booking booking;
 
+  const UpdateBookingStatusDialog({super.key, required this.booking});
+
+  @override
+  ConsumerState<UpdateBookingStatusDialog> createState() =>
+      _UpdateBookingStatusDialogState();
+}
+
+class _UpdateBookingStatusDialogState
+    extends ConsumerState<UpdateBookingStatusDialog> {
+  String _selectedStatus = '';
+  String _selectedPaymentStatus = '';
+  bool _isLoading = false;
+
+  // Available status transitions based on current status
+  List<String> _getAvailableStatuses(String currentStatus) {
+    switch (currentStatus.toLowerCase()) {
+      case 'pending':
+        return ['active', 'cancelled'];
+      case 'active':
+        return ['completed', 'cancelled'];
+      case 'completed':
+        return []; // Cannot change from completed
+      case 'cancelled':
+        return []; // Cannot change from cancelled
+      default:
+        return ['pending', 'active', 'completed', 'cancelled'];
+    }
+  }
+
+  // Available payment statuses
+  List<String> _getAvailablePaymentStatuses(String currentPaymentStatus) {
+    switch (currentPaymentStatus.toLowerCase()) {
+      case 'pending':
+        return ['paid', 'failed'];
+      case 'paid':
+        return ['refunded']; // Only allow refund if already paid
+      case 'failed':
+        return ['pending', 'paid']; // Allow retry
+      case 'refunded':
+        return []; // Cannot change from refunded
+      default:
+        return ['pending', 'paid', 'failed', 'refunded'];
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedStatus = widget.booking.status;
+    _selectedPaymentStatus = widget.booking.paymentStatus;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final availableStatuses = _getAvailableStatuses(widget.booking.status);
+    final availablePaymentStatuses =
+        _getAvailablePaymentStatuses(widget.booking.paymentStatus);
+    final hasChanges = _selectedStatus != widget.booking.status ||
+        _selectedPaymentStatus != widget.booking.paymentStatus;
+
+    return AlertDialog(
+      title: Text('Update Booking ${widget.booking.id}'),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Current Status Display
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Current Status:',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(_getStatusIcon(widget.booking.status),
+                          size: 16,
+                          color: _getStatusColor(widget.booking.status)),
+                      const SizedBox(width: 8),
+                      Text(widget.booking.status.toUpperCase(),
+                          style: TextStyle(
+                              color: _getStatusColor(widget.booking.status),
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 16),
+                      Icon(_getPaymentStatusIcon(widget.booking.paymentStatus),
+                          size: 16,
+                          color: _getPaymentStatusColor(
+                              widget.booking.paymentStatus)),
+                      const SizedBox(width: 8),
+                      Text(widget.booking.paymentStatus.toUpperCase(),
+                          style: TextStyle(
+                              color: _getPaymentStatusColor(
+                                  widget.booking.paymentStatus),
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Status Update Section
+            if (availableStatuses.isNotEmpty) ...[
+              const Text('Update Booking Status:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedStatus,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.update),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: widget.booking.status,
+                    child: Text(
+                        '✈️ ${widget.booking.status.toUpperCase()} (Current)'),
+                  ),
+                  ...availableStatuses.map((status) => DropdownMenuItem(
+                        value: status,
+                        child: Row(
+                          children: [
+                            Icon(_getStatusIcon(status),
+                                size: 16, color: _getStatusColor(status)),
+                            const SizedBox(width: 8),
+                            Text(status.toUpperCase()),
+                          ],
+                        ),
+                      )),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedStatus = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  border: Border.all(color: Colors.amber),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info, color: Colors.amber),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Booking status "${widget.booking.status.toUpperCase()}" cannot be changed.',
+                        style: const TextStyle(color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Payment Status Update Section
+            if (availablePaymentStatuses.isNotEmpty) ...[
+              const Text('Update Payment Status:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedPaymentStatus,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.payment),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: widget.booking.paymentStatus,
+                    child: Text(
+                        '✈️ ${widget.booking.paymentStatus.toUpperCase()} (Current)'),
+                  ),
+                  ...availablePaymentStatuses.map((status) => DropdownMenuItem(
+                        value: status,
+                        child: Row(
+                          children: [
+                            Icon(_getPaymentStatusIcon(status),
+                                size: 16,
+                                color: _getPaymentStatusColor(status)),
+                            const SizedBox(width: 8),
+                            Text(status.toUpperCase()),
+                          ],
+                        ),
+                      )),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPaymentStatus = value!;
+                  });
+                },
+              ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  border: Border.all(color: Colors.amber),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info, color: Colors.amber),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Payment status "${widget.booking.paymentStatus.toUpperCase()}" cannot be changed.',
+                        style: const TextStyle(color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading || !hasChanges ? null : _updateStatus,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: hasChanges ? Colors.green : Colors.grey,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Update'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _updateStatus() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final updateData = {
+        'bookingId': widget.booking.id,
+        'newStatus': _selectedStatus,
+        'paymentStatus': _selectedPaymentStatus != widget.booking.paymentStatus
+            ? _selectedPaymentStatus
+            : null,
+      };
+
+      final result =
+          await ref.read(updateBookingStatusProvider(updateData).future);
+
+      if (result) {
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Booking status updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Failed to update booking status'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Helper methods (reuse from main class)
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Icons.schedule;
+      case 'active':
+        return Icons.local_parking;
+      case 'completed':
+        return Icons.check_circle;
+      case 'cancelled':
+        return Icons.cancel;
+      default:
+        return Icons.help;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'active':
+        return Colors.green;
+      case 'completed':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getPaymentStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Icons.schedule;
+      case 'paid':
+        return Icons.check_circle;
+      case 'failed':
+        return Icons.error;
+      case 'refunded':
+        return Icons.undo;
+      default:
+        return Icons.help;
+    }
+  }
+
+  Color _getPaymentStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'paid':
+        return Colors.green;
+      case 'failed':
+        return Colors.red;
+      case 'refunded':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+}

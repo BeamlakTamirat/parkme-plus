@@ -18,15 +18,15 @@ void main() async {
     print('ℹ️  App will continue but authentication will not work');
   }
 
-  // Initialize Gebeta Maps
+  // Initialize Mapbox Maps
   try {
-    print('🗺️ Initializing Gebeta Maps...');
-    await GebetaMapsConfig.initialize();
-    print('✅ Gebeta Maps initialized successfully');
+    print('🗺️ Initializing Mapbox Maps...');
+    await MapboxConfig.initialize();
+    print('✅ Mapbox Maps initialized successfully');
   } catch (e) {
-    print('❌ Gebeta Maps initialization failed: $e');
+    print('❌ Mapbox Maps initialization failed: $e');
     print(
-        '📁 Make sure your .env file exists with correct Gebeta Maps API key');
+        '📁 Make sure your .env file exists with correct Mapbox access token');
     print('ℹ️  App will continue but maps will not work');
   }
 

@@ -21,9 +21,8 @@ dependencies:
   uuid: ^4.2.1
   intl: ^0.19.0
   
-  # Gebeta Maps integration (REAL GEBETA MAPS)
-  # Note: Replace with actual Gebeta Maps Flutter package when available
-  # For now, using a custom implementation with Dio for API calls
+  # Mapbox Maps integration (REAL WORLD MAPS) - Interactive Maps
+  mapbox_maps_flutter: ^2.0.0
   geolocator: ^10.1.0
   geocoding: ^2.1.1
 
