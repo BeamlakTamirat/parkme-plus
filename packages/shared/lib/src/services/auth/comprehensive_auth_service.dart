@@ -123,6 +123,103 @@ class ComprehensiveAuthService {
     }
   }
 
+  /// Admin-initiated user creation (NO session creation)
+  /// Used when admin creates accounts for other users
+  Future<ComprehensiveAuthResult> createUserForAdmin({
+    required String email,
+    required String password,
+    required String fullName,
+    required String role, // Allow specifying role
+    String? phoneNumber,
+    String? vehiclePlateNumber,
+    String? vehicleModel,
+    String? vehicleColor,
+  }) async {
+    try {
+      if (kDebugMode)
+        print('👨‍💼 Starting admin user creation for: $email (role: $role)');
+
+      // Validate inputs
+      if (!_isValidEmail(email)) {
+        return ComprehensiveAuthResult.error(
+            'Please enter a valid email address');
+      }
+      if (password.length < 8) {
+        return ComprehensiveAuthResult.error(
+            'Password must be at least 8 characters');
+      }
+      if (fullName.trim().isEmpty) {
+        return ComprehensiveAuthResult.error('Full name is required');
+      }
+      if (!['user', 'admin', 'attendant'].contains(role.toLowerCase())) {
+        return ComprehensiveAuthResult.error('Invalid role specified');
+      }
+
+      // Create account in Appwrite Auth (NO SESSION CREATION)
+      final appwriteUser = await AppwriteConfig.account.create(
+        userId: ID.unique(),
+        email: email,
+        password: password,
+        name: fullName.trim(),
+      );
+
+      if (kDebugMode)
+        print('✅ Appwrite account created by admin: ${appwriteUser.$id}');
+
+      // 🔐 SKIP session creation - admin stays logged in
+      // This is the key difference from regular signUp
+
+      // Create comprehensive user profile with specified role
+      final user = User(
+        id: appwriteUser.$id,
+        email: email,
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber,
+        role: role.toLowerCase(), // Use specified role
+        isActive: true,
+        profileImageUrl: null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        preferences: null,
+        vehiclePlateNumber: vehiclePlateNumber,
+        vehicleModel: vehicleModel,
+        vehicleColor: vehicleColor,
+      );
+
+      // Save user data to database
+      final success = await DatabaseService.instance.createUser(user);
+
+      if (!success) {
+        // If database save fails, we should delete the Appwrite account
+        // But we can't use deleteSessions() because we didn't create a session
+        // We'll need to use the Users API to delete the account
+        if (kDebugMode)
+          print(
+              '❌ Database save failed, Appwrite account created but not saved to DB');
+        return ComprehensiveAuthResult.error(
+            'Failed to save user profile. Appwrite account created but not linked.');
+      }
+
+      if (kDebugMode) print('✅ Admin-created user data saved to database');
+
+      // Do NOT notify auth state change (admin stays logged in)
+
+      return ComprehensiveAuthResult.success(
+        user: user,
+        message:
+            'Account created successfully by admin! User: ${user.fullName} (${user.role})',
+      );
+    } on AppwriteException catch (e) {
+      if (kDebugMode) print('❌ Admin user creation error: ${e.message}');
+      return ComprehensiveAuthResult.error(
+          _getErrorMessage(e.message ?? 'User creation failed'));
+    } catch (e) {
+      if (kDebugMode) print('❌ Unexpected admin user creation error: $e');
+      return ComprehensiveAuthResult.error(
+          'User creation failed. Please try again.');
+    }
+  }
+
   /// Simple sign up (backward compatibility)
   Future<ComprehensiveAuthResult> simpleSignUp({
     required String email,

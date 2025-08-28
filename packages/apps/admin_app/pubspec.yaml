@@ -24,6 +24,9 @@ dependencies:
   
   # UI utilities
   cupertino_icons: ^1.0.2
+  
+  # 📸 Image picking
+  image_picker: ^1.0.4
 
 dev_dependencies:
   flutter_test:
@@ -35,6 +38,5 @@ flutter:
   
   assets:
     - assets/images/
+    - .env  # 🔑 CRITICAL: Include .env file as asset
     
-
-  
