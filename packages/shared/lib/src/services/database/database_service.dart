@@ -298,9 +298,10 @@ class DatabaseService {
         startTime: startTime,
         endTime: endTime,
         totalAmount: (bookingData['totalAmount'] ?? 0.0).toDouble(),
-        status: 'active', // Set to active immediately for simplicity
-        paymentStatus: 'pending', // Will be updated after payment
-        qrCode: 'QR_${bookingId}_${DateTime.now().millisecondsSinceEpoch}',
+        status: 'pending', 
+        paymentStatus:
+            'paid', 
+        qrCode: 'booking:$bookingId',
         paymentMethod: bookingData['paymentMethod'],
         transactionId: bookingData['transactionId'],
         createdAt: DateTime.now(),

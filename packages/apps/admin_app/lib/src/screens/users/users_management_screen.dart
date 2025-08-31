@@ -611,7 +611,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
       };
 
       if (kDebugMode) {
-        print('📝 Creating ${_selectedRole} with data:');
+        print('📝 Creating $_selectedRole with data:');
         print('   Email: ${userData['email']}');
         print('   Name: ${userData['fullName']}');
         print('   Role: ${userData['role']}');

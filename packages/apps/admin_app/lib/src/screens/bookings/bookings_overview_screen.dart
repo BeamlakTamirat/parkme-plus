@@ -830,7 +830,7 @@ class _UpdateBookingStatusDialogState
         if (mounted) {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('✅ Booking status updated successfully!'),
               backgroundColor: Colors.green,
             ),
