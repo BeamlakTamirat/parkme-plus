@@ -1,14 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
 
-class ParkingHistoryScreen extends ConsumerWidget {
+class ParkingHistoryScreen extends ConsumerStatefulWidget {
   const ParkingHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ParkingHistoryScreen> createState() =>
+      _ParkingHistoryScreenState();
+}
+
+class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
+  Map<String, String> _locationNames = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocationNames();
+  }
+
+  Future<void> _loadLocationNames() async {
+    try {
+      final locations = await ref.read(parkingLocationsProvider.future);
+      setState(() {
+        _locationNames = {
+          for (var location in locations) location.id: location.name
+        };
+      });
+    } catch (e) {
+      // Handle error silently - we'll show "Unknown Location" as fallback
+      print('Error loading location names: $e');
+    }
+  }
+
+  String _getLocationName(String locationId) {
+    return _locationNames[locationId] ?? 'Unknown Location';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -72,7 +105,7 @@ class ParkingHistoryScreen extends ConsumerWidget {
           );
         }
 
-        final bookingsAsync = ref.watch(userBookingsProvider(user.id));
+        final bookingsAsync = ref.watch(bookingHistoryProvider);
 
         return bookingsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -85,7 +118,7 @@ class ParkingHistoryScreen extends ConsumerWidget {
                 Text('Error: $error'),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => ref.refresh(userBookingsProvider(user.id)),
+                  onPressed: () => ref.refresh(bookingHistoryProvider),
                   child: const Text('Retry'),
                 ),
               ],
@@ -133,8 +166,8 @@ class ParkingHistoryScreen extends ConsumerWidget {
                 return Column(
                   children: [
                     _buildHistoryItem(
-                      location:
-                          'Parking Location', // We'll get this from the booking
+                      location: _getLocationName(booking
+                          .parkingLocationId), // 🔧 FIX: Use real location name
                       space: booking.spotNumber,
                       vehicle: booking.vehiclePlateNumber,
                       date: booking.formattedStartTime,
@@ -147,7 +180,10 @@ class ParkingHistoryScreen extends ConsumerWidget {
                       statusColor: _getStatusColor(booking.status),
                       primaryAction: booking.isActive ? 'Manage' : 'Book Again',
                       primaryActionColor: Colors.orange,
-                      secondaryAction: 'View Details',
+                      secondaryAction: booking.status == 'pending' ||
+                              booking.status == 'active'
+                          ? 'Show QR Code'
+                          : 'View Details',
                       onPrimaryAction: () {
                         if (booking.isActive) {
                           // Navigate to active booking
@@ -156,12 +192,15 @@ class ParkingHistoryScreen extends ConsumerWidget {
                             'action': 'view',
                           });
                         } else {
-                          // Navigate to find parking
-                          context.go('/find-parking');
+                          // Navigate to find parking with previous location data
+                          context.push('/find-parking', extra: {
+                            'previousBooking': booking,
+                            'action': 'book_again',
+                          });
                         }
                       },
                       onSecondaryAction: () {
-                        // Show booking details
+                        // Show booking details with QR code if applicable
                         _showBookingDetails(context, booking);
                       },
                     ),
@@ -191,25 +230,176 @@ class ParkingHistoryScreen extends ConsumerWidget {
   }
 
   void _showBookingDetails(BuildContext context, Booking booking) {
+    final isActiveBooking =
+        booking.status == 'pending' || booking.status == 'active';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Booking Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Location: Parking Location'),
-            Text('Spot: ${booking.spotNumber}'),
-            Text('Vehicle: ${booking.vehiclePlateNumber}'),
-            Text('Start: ${booking.formattedStartTime}'),
-            Text('End: ${booking.formattedEndTime}'),
-            Text(
-                'Duration: ${booking.durationInHours.toStringAsFixed(1)} hours'),
-            Text('Amount: ${booking.formattedTotalAmount}'),
-            Text('Status: ${booking.status}'),
-            Text('Payment: ${booking.paymentStatus}'),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // QR Code Section for Active Bookings
+              if (isActiveBooking && booking.qrCode != null) ...[
+                const Text(
+                  'QR Code for Check-in/Check-out',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Column(
+                      children: [
+                        QrImageView(
+                          data: booking.qrCode!,
+                          version: QrVersions.auto,
+                          size: 120.0,
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          booking.qrCode!,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.black87,
+                            fontFamily: 'monospace',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        booking.status == 'pending'
+                            ? Icons.schedule
+                            : Icons.check_circle,
+                        color: Colors.blue,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          booking.status == 'pending'
+                              ? 'Show to attendant for check-in'
+                              : 'Show to attendant for check-out',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF1565C0), // Colors.blue[800]
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+
+              // Booking Details
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'Location: ${_getLocationName(booking.parkingLocationId)}'),
+                    const SizedBox(height: 6),
+                    Text('Spot: ${booking.spotNumber}'),
+                    const SizedBox(height: 6),
+                    Text('Vehicle: ${booking.vehiclePlateNumber}'),
+                    const SizedBox(height: 6),
+                    Text('Start: ${booking.formattedStartTime}'),
+                    const SizedBox(height: 6),
+                    Text('End: ${booking.formattedEndTime}'),
+                    const SizedBox(height: 6),
+                    Text(
+                        'Duration: ${booking.durationInHours.toStringAsFixed(1)} hours'),
+                    const SizedBox(height: 6),
+                    Text('Amount: ${booking.formattedTotalAmount}'),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Text('Status: '),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(booking.status)
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            booking.status.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _getStatusColor(booking.status),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text('Payment: ${booking.paymentStatus}'),
+                  ],
+                ),
+              ),
+
+              // Instructions for completed bookings
+              if (booking.status == 'completed') ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.green[200]!),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        'Booking completed successfully',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2E7D32), // Colors.green[800]
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
         actions: [
           TextButton(

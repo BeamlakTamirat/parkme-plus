@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
 
@@ -82,9 +83,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
         'endTime':
             DateTime.now().add(const Duration(hours: 2)).toIso8601String(),
         'totalAmount': location.hourlyRate * 2, // 2 hours
-        'status': 'pending',
-        'paymentStatus': 'pending',
-        'qrCode': 'WEPARK_QR_${DateTime.now().millisecondsSinceEpoch}',
+
       };
 
       final result = await ref.read(createBookingProvider(bookingData).future);
@@ -414,14 +413,16 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.qr_code,
-                      size: 80,
-                      color: Colors.black87,
+                    QrImageView(
+                      data: _currentBooking?.qrCode ?? 'booking:unknown',
+                      version: QrVersions.auto,
+                      size: 150.0,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'WEPARK:BOOKING:${DateTime.now().millisecondsSinceEpoch}:A12',
+                      _currentBooking?.qrCode ?? 'QR Code not available',
                       style: const TextStyle(
                         fontSize: 10,
                         color: Colors.black87,
