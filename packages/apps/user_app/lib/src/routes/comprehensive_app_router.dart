@@ -66,7 +66,10 @@ final comprehensiveRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/find-parking',
         name: 'find-parking',
-        builder: (context, state) => const FindParkingScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return FindParkingScreen(extraData: extra);
+        },
       ),
 
       // Bookings route

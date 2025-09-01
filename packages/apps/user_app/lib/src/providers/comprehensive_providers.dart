@@ -185,3 +185,19 @@ final refreshBookingProvider = Provider<void>((ref) {
 final clearBookingProvider = Provider<void>((ref) {
   ref.read(currentBookingProvider.notifier).state = null;
 });
+
+/// Provider to get parking location name by ID
+final parkingLocationNameProvider =
+    FutureProvider.family<String?, String>((ref, locationId) async {
+  try {
+    final databaseService = ref.read(databaseServiceProvider);
+    final locationData = await databaseService.getParkingLocation(locationId);
+    if (locationData != null) {
+      final location = ParkingLocation.fromDocument(locationData);
+      return location.name;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+});

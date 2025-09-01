@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
 
@@ -601,8 +602,13 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
 
       if (result.success) {
         // Payment successful - now create the booking in database
-        await _createBookingAfterPayment(paymentData, result.txRef ?? '');
-        _showSuccessDialog();
+        final booking =
+            await _createBookingAfterPayment(paymentData, result.txRef ?? '');
+        if (booking != null) {
+          _showSuccessDialogWithQR(booking);
+        } else {
+          _showErrorDialog('Failed to create booking record');
+        }
       } else {
         _showErrorDialog(result.message);
       }
@@ -617,7 +623,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
     }
   }
 
-  Future<void> _createBookingAfterPayment(
+  Future<Booking?> _createBookingAfterPayment(
       Map<String, dynamic> paymentData, String transactionId) async {
     try {
       if (kDebugMode) print('🎫 Creating booking after successful payment...');
@@ -647,12 +653,14 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
         if (kDebugMode) {
           print('✅ Booking created successfully: ${result.booking?.id}');
         }
+        return result.booking; // Return the booking object
       } else {
         if (kDebugMode) print('❌ Failed to create booking: ${result.message}');
-        // Note: Payment succeeded but booking creation failed - handle this scenario
+        return null; // Return null on failure
       }
     } catch (e) {
       if (kDebugMode) print('❌ Error creating booking after payment: $e');
+      return null; // Return null on error
     }
   }
 
@@ -693,7 +701,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
     );
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessDialogWithQR(Booking booking) {
     final locationName =
         widget.bookingData['parkingLocationName'] ?? 'Parking Location';
     final amount = widget.bookingData['totalAmount'] as double;
@@ -710,50 +718,135 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
             Text('Booking Confirmed!'),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Your parking spot has been successfully booked and payment confirmed.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Your parking spot has been successfully booked and payment confirmed.',
+                style: TextStyle(fontSize: 16),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Location: $locationName',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+              const SizedBox(height: 20),
+
+              // QR Code Section
+              const Text(
+                'Your Check-in QR Code',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
-                  const SizedBox(height: 4),
-                  Text('Duration: $duration'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Total Paid: ${CurrencyFormatter.format(amount)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                  child: Column(
+                    children: [
+                      // QR Code Image
+                      QrImageView(
+                        data: booking.qrCode ?? 'booking:${booking.id}',
+                        version: QrVersions.auto,
+                        size: 150.0,
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        booking.qrCode ?? 'booking:${booking.id}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.black87,
+                          fontFamily: 'monospace',
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info, color: Colors.blue, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Show this QR code to the parking attendant for check-in. Keep it safe for check-out as well.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF1565C0), // Colors.blue[800]
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'You can view your booking details in the Bookings tab.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
+              const SizedBox(height: 20),
+
+              // Booking Details
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Location: $locationName',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Spot: ${booking.spotNumber}'),
+                    const SizedBox(height: 4),
+                    Text('Duration: $duration'),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Total Paid: ${CurrencyFormatter.format(amount)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Status: ${booking.status.toUpperCase()}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: booking.status == 'pending'
+                            ? Colors.orange
+                            : Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              const Text(
+                'You can also access this QR code from your booking history.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
         actions: [
           OutlinedButton(
@@ -766,15 +859,13 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // Navigate to bookings to show the new booking
-              context.go('/home');
-              // Note: You might want to programmatically switch to bookings tab
+              context.go('/history'); // Go directly to booking history
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
             ),
-            child: const Text('View Booking'),
+            child: const Text('View All Bookings'),
           ),
         ],
       ),

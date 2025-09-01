@@ -83,7 +83,8 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
         'endTime':
             DateTime.now().add(const Duration(hours: 2)).toIso8601String(),
         'totalAmount': location.hourlyRate * 2, // 2 hours
-
+        //  status and paymentStatus are handled by DatabaseService.createBookingFromMap
+        // qrCode format is handled by DatabaseService
       };
 
       final result = await ref.read(createBookingProvider(bookingData).future);
@@ -413,6 +414,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                 ),
                 child: Column(
                   children: [
+                    //  Generate actual scannable QR code
                     QrImageView(
                       data: _currentBooking?.qrCode ?? 'booking:unknown',
                       version: QrVersions.auto,
