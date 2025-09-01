@@ -95,48 +95,48 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
   }
 
   Future<void> _addParkingMarkers() async {
-    if (_pointAnnotationManager == null || widget.parkingLocations.isEmpty)
+    if (_pointAnnotationManager == null || widget.parkingLocations.isEmpty) {
+      if (kDebugMode) print('⚠️ No annotation manager or no locations');
       return;
+    }
 
     try {
       final annotations = <PointAnnotationOptions>[];
 
       for (final location in widget.parkingLocations) {
-        // Validate coordinates are in Ethiopia
-        if (_isValidEthiopianCoordinate(
-            location.latitude, location.longitude)) {
-          final annotation = PointAnnotationOptions(
-            geometry: Point(
-                coordinates: Position(location.longitude, location.latitude)),
-            textField: location.name,
-            textOffset: [0.0, -1.5],
-            textColor: Colors.black.value,
-            textSize: 12.0,
-            iconSize: 1.2,
-          );
-          annotations.add(annotation);
+        // if (!_isValidEthiopianCoordinate(location.latitude, location.longitude)) {
+        //   continue;
+        // }
 
-          if (kDebugMode) {
-            print(
-                '✅ Added marker: ${location.name} at ${location.latitude}, ${location.longitude}');
-          }
-        } else {
-          if (kDebugMode) {
-            print(
-                '❌ Skipped invalid coordinates for ${location.name}: ${location.latitude}, ${location.longitude}');
-          }
+        final annotation = PointAnnotationOptions(
+          geometry: Point(
+              coordinates: Position(location.longitude, location.latitude)),
+          textField: "${location.name}", // ✅ EMOJI MARKER
+          textOffset: [0.0, -1.5],
+          textColor: const Color.fromARGB(255, 255, 149, 0).value,
+          textSize: 12.5,
+          textHaloColor: const Color.fromARGB(255, 220, 138, 30).value,
+          textHaloWidth: 1.15,
+        );
+        annotations.add(annotation);
+
+        if (kDebugMode) {
+          print(
+              '✅ Created marker for: ${location.name} at ${location.latitude}, ${location.longitude}');
         }
       }
 
       if (annotations.isNotEmpty) {
         await _pointAnnotationManager?.createMulti(annotations);
         if (kDebugMode) {
-          print('✅ Added ${annotations.length} parking markers to map');
+          print('🎉 SUCCESS: Added ${annotations.length} markers to map!');
         }
+      } else {
+        if (kDebugMode) print('⚠️ No valid annotations to add');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error adding parking markers: $e');
+        print('❌ Error adding markers: $e');
       }
     }
   }

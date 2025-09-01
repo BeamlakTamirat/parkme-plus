@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +6,12 @@ import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
 
 class FindParkingScreen extends ConsumerStatefulWidget {
-  const FindParkingScreen({super.key});
+  final Map<String, dynamic>? extraData;
+
+  const FindParkingScreen({
+    super.key,
+    this.extraData,
+  });
 
   @override
   ConsumerState<FindParkingScreen> createState() => _FindParkingScreenState();
@@ -17,6 +21,64 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'All';
   final bool _showMapView = true;
+
+  // Book again functionality
+  bool _isBookAgainMode = false;
+  ParkingLocation? _targetLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _handleExtraData();
+  }
+
+  Future<void> _handleExtraData() async {
+    if (widget.extraData != null) {
+      final action = widget.extraData!['action'];
+      final booking = widget.extraData!['previousBooking'] as Booking?;
+
+      if (action == 'book_again' && booking != null) {
+        setState(() {
+          _isBookAgainMode = true;
+        });
+
+        // Find the parking location from the booking
+        await _loadTargetLocation(booking.parkingLocationId);
+      }
+    }
+  }
+
+  Future<void> _loadTargetLocation(String locationId) async {
+    try {
+      final locations = await ref.read(parkingLocationsProvider.future);
+      final targetLocation = locations.firstWhere(
+        (location) => location.id == locationId,
+        orElse: () => throw Exception('Location not found'),
+      );
+
+      setState(() {
+        _targetLocation = targetLocation;
+      });
+
+      // Show booking dialog for the target location after a short delay
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && _targetLocation != null) {
+          _showBookingDialog(context, _targetLocation!);
+        }
+      });
+    } catch (e) {
+      if (kDebugMode) print('Error loading target location: $e');
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not find the previous parking location'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +110,62 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       ),
       body: Column(
         children: [
+          // Book Again Banner
+          if (_isBookAgainMode && _targetLocation != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.refresh, color: Colors.orange[700], size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Booking Again',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Taking you to ${_targetLocation!.name}...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _isBookAgainMode = false;
+                        _targetLocation = null;
+                      });
+                    },
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Colors.orange[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Search and filter section
           _buildSearchSection(),
 
@@ -133,7 +251,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Row(
-        children: [
+              children: [
                 const Icon(
                   Icons.map,
                   color: Colors.orange,
@@ -148,7 +266,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   ),
                 ),
                 const Spacer(),
-          Container(
+                Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -157,7 +275,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   ),
                   child: const Text(
                     'Live',
-                style: TextStyle(
+                    style: TextStyle(
                       color: Colors.orange,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -193,9 +311,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
                 ),
               ),
               error: (error, _) => Container(
@@ -207,8 +325,8 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
+                    children: [
+                      Icon(
                         Icons.error_outline,
                         size: 48,
                         color: Colors.red[400],
@@ -225,16 +343,16 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Unable to load parking locations',
-                    style: TextStyle(
-                      fontSize: 14,
+                        style: TextStyle(
+                          fontSize: 14,
                           color: Colors.red[600],
-                    ),
+                        ),
                         textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
               data: (parkingLocations) => InteractiveMapboxWidget(
                 centerLat:
                     9.0120, // Meskel Square - Famous landmark in Addis Ababa
@@ -288,19 +406,19 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           _selectedFilter = value;
         });
       },
-                child: Container(
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
+        decoration: BoxDecoration(
           color: isSelected ? Colors.orange : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
           label,
-                    style: TextStyle(
+          style: TextStyle(
             color: isSelected ? Colors.white : Colors.grey[700],
-                      fontSize: 14,
+            fontSize: 14,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  ),
+          ),
         ),
       ),
     );
@@ -317,9 +435,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       error: (error, _) => SizedBox(
         height: 200,
         child: Center(
-      child: Column(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+            children: [
               const Icon(Icons.error, size: 64, color: Colors.red),
               const SizedBox(height: 16),
               Text('Error: $error'),
@@ -339,13 +457,13 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+                children: [
                   Icon(Icons.local_parking, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'No parking locations found',
-                  style: TextStyle(
-                    fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.w500,
                       color: Colors.grey[600],
                     ),
@@ -356,11 +474,11 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[500],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           );
         }
 
@@ -399,9 +517,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       child: Column(
         children: [
           // 📸 REAL PARKING IMAGES
-              Container(
+          Container(
             height: 120,
-                decoration: BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
@@ -414,25 +532,25 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           // Content
           Padding(
             padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Row(
                   children: [
                     Expanded(
                       child: Text(
                         location.name,
-                      style: const TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
                     ),
                     const Row(
                       children: [
                         Icon(
-                            Icons.star,
+                          Icons.star,
                           size: 16,
                           color: Colors.orange,
                         ),
@@ -459,7 +577,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-              Icon(
+                    Icon(
                       Icons.location_on,
                       size: 16,
                       color: Colors.grey[500],
@@ -481,25 +599,25 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     const SizedBox(width: 4),
                     Text(
                       '${location.availableSpots}/${location.totalSpots} available',
-                  style: TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[500],
-                  ),
-                ),
+                      ),
+                    ),
                   ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                      location.formattedHourlyRate,
-                style: const TextStyle(
-                        fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                        color: Colors.orange,
                 ),
-              ),
-              const Spacer(),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(
+                      location.formattedHourlyRate,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                    const Spacer(),
                     ElevatedButton(
                       onPressed: () => _bookParking(context, location),
                       style: ElevatedButton.styleFrom(
@@ -573,45 +691,45 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     horizontal: 8,
                     vertical: 4,
                   ),
-                decoration: BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
+                  ),
+                  child: Text(
                     '${location.images!.length} photos',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
               ),
 
             // Availability indicator
             Positioned(
               top: 8,
               left: 8,
-                child: Container(
+              child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 6,
                   vertical: 3,
                 ),
-                  decoration: BoxDecoration(
+                decoration: BoxDecoration(
                   color: location.hasAvailableSpots ? Colors.green : Colors.red,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Text(
                   location.hasAvailableSpots ? 'Available' : 'Full',
                   style: const TextStyle(
-                      color: Colors.white,
+                    color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    ),
                   ),
                 ),
               ),
-            ],
+            ),
+          ],
         ),
       );
     } else {
@@ -698,107 +816,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
     );
   }
 
-  void _onMapLocationSelected(ParkingLocation location) {
-    // Show location details and book directly
-    _showLocationDetailsDialog(context, location);
-  }
-
-  /// Find the closest parking location to the given coordinates
-  ParkingLocation? _findClosestParkingLocation(
-    List<ParkingLocation> locations,
-    double lat,
-    double lng,
-  ) {
-    if (locations.isEmpty) return null;
-
-    ParkingLocation? closestLocation;
-    double minDistance = double.infinity;
-
-    for (final location in locations) {
-      final distance = _calculateDistance(
-        lat,
-        lng,
-        location.latitude,
-        location.longitude,
-      );
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestLocation = location;
-      }
-    }
-
-    return closestLocation;
-  }
-
-  /// Calculate distance between two coordinates in meters
-  double _calculateDistance(
-      double lat1, double lng1, double lat2, double lng2) {
-    const double earthRadius = 6371000; // Earth radius in meters
-    final double dLat = (lat2 - lat1) * (math.pi / 180);
-    final double dLng = (lng2 - lng1) * (math.pi / 180);
-    final double a = (0.5 - math.cos(dLat / 2)) +
-        math.cos(lat1 * (math.pi / 180)) *
-            math.cos(lat2 * (math.pi / 180)) *
-            (1 - math.cos(dLng / 2)) /
-            2;
-    return earthRadius * 2 * math.atan(math.sqrt(a) / math.sqrt(1 - a));
-  }
-
   void _bookParking(BuildContext context, ParkingLocation location) {
-    // Navigate directly to payment with booking data
+    // Show booking dialog with duration selection
     _showBookingDialog(context, location);
-  }
-
-  void _showLocationDetailsDialog(
-      BuildContext context, ParkingLocation location) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(location.name),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Address: ${location.address}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Available: ${location.availableSpots}/${location.totalSpots} spots',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Rate: ${location.formattedHourlyRate}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _bookParking(context, location);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Book Now'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showBookingDialog(BuildContext context, ParkingLocation location) {
@@ -812,63 +832,112 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       return;
     }
 
+    int selectedDuration = 2; // Default 2 hours
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Book Parking Spot'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Location: ${location.name}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text('Rate: ${location.formattedHourlyRate}'),
-            const SizedBox(height: 8),
-            Text('Available spots: ${location.availableSpots}'),
-            const SizedBox(height: 16),
-            const Text(
-              'Duration: 2 hours (default)',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Book Parking Spot'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Location: ${location.name}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Total: ${CurrencyFormatter.format(location.hourlyRate * 2)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
+              const SizedBox(height: 8),
+              Text('Rate: ${location.formattedHourlyRate}'),
+              const SizedBox(height: 8),
+              Text('Available spots: ${location.availableSpots}'),
+              const SizedBox(height: 16),
+
+              // 🔧 FIX: Add duration selection
+              const Text(
+                'Duration:',
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [1, 2, 3, 4, 6, 8, 12, 24].map((hours) {
+                  return ChoiceChip(
+                    label: Text('${hours}h'),
+                    selected: selectedDuration == hours,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          selectedDuration = hours;
+                        });
+                      }
+                    },
+                    selectedColor: Colors.orange.withOpacity(0.2),
+                    labelStyle: TextStyle(
+                      color: selectedDuration == hours
+                          ? Colors.orange[700]
+                          : Colors.grey[700],
+                      fontWeight: selectedDuration == hours
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+
+              // 🔧 FIX: Dynamic total calculation
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Cost:',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      CurrencyFormatter.format(
+                          location.hourlyRate * selectedDuration),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _proceedToPayment(context, location, selectedDuration);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Continue to Payment'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _proceedToPayment(context, location);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Continue to Payment'),
-          ),
-        ],
       ),
     );
   }
 
-  void _proceedToPayment(BuildContext context, ParkingLocation location) async {
+  void _proceedToPayment(
+      BuildContext context, ParkingLocation location, int durationHours) async {
     // Get current user
     final currentUser = await ref.read(currentUserProvider.future);
     if (currentUser == null) {
@@ -884,17 +953,20 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       return;
     }
 
-    // Create booking data
+    // 🔧 FIX: Use dynamic duration and amount calculation
     final bookingData = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'parkingLocationId': location.id,
       'parkingLocationName': location.name,
       'userId': currentUser.id,
       'vehiclePlateNumber': currentUser.vehiclePlateNumber ?? 'N/A',
-      'totalAmount': location.hourlyRate * 2, // 2 hours default
-      'duration': '2 hours',
+      'totalAmount':
+          location.hourlyRate * durationHours, // 🔧 FIX: Dynamic calculation
+      'duration':
+          '$durationHours hour${durationHours == 1 ? '' : 's'}', // 🔧 FIX: Dynamic duration text
       'startTime': DateTime.now(),
-      'endTime': DateTime.now().add(const Duration(hours: 2)),
+      'endTime': DateTime.now()
+          .add(Duration(hours: durationHours)), // 🔧 FIX: Dynamic end time
     };
 
     // Navigate to payment screen
