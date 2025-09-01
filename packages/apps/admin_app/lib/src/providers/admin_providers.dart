@@ -99,8 +99,9 @@ final createUserProvider =
       throw Exception('Full name is required');
     }
 
-    if (kDebugMode)
+    if (kDebugMode) {
       print('🔐 Using ComprehensiveAuthService.createUserForAdmin...');
+    }
 
     // Use ComprehensiveAuthService.createUserForAdmin (NO session creation)
     final result = await ComprehensiveAuthService.instance.createUserForAdmin(
@@ -268,8 +269,9 @@ final updateBookingStatusProvider =
     DateTime? endTime = currentBooking.endTime;
     if (newStatus == 'completed' && endTime == null) {
       endTime = DateTime.now();
-      if (kDebugMode)
+      if (kDebugMode) {
         print('⏰ Setting end time for completed booking: $endTime');
+      }
     }
 
     final updatedBooking = currentBooking.copyWith(

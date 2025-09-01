@@ -298,10 +298,10 @@ class DatabaseService {
         startTime: startTime,
         endTime: endTime,
         totalAmount: (bookingData['totalAmount'] ?? 0.0).toDouble(),
-        status: 'pending', 
+        status: 'pending', //  Start as pending until attendant check-in
         paymentStatus:
-            'paid', 
-        qrCode: 'booking:$bookingId',
+            'paid', // Set as paid since this is called after payment success
+        qrCode: 'booking:$bookingId', // Match attendant scanner format
         paymentMethod: bookingData['paymentMethod'],
         transactionId: bookingData['transactionId'],
         createdAt: DateTime.now(),
