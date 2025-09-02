@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
 
@@ -26,10 +27,21 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   bool _isBookAgainMode = false;
   ParkingLocation? _targetLocation;
 
+  // Location state
+  Position? _userLocation;
+  bool _isLoadingLocation = false;
+  bool _locationPermissionGranted = false;
+
   @override
   void initState() {
     super.initState();
     _handleExtraData();
+    _initializeLocationAndMap();
+  }
+
+  /// 🎯 Initialize location services and center map on user location
+  Future<void> _initializeLocationAndMap() async {
+    await _requestLocationPermissionAndGetLocation();
   }
 
   Future<void> _handleExtraData() async {
@@ -77,6 +89,452 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           ),
         );
       }
+    }
+  }
+
+
+
+  /// 🎯 Request location permission with user-friendly dialogs and get location
+  Future<void> _requestLocationPermissionAndGetLocation() async {
+    setState(() {
+      _isLoadingLocation = true;
+    });
+
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        await _showLocationServiceDialog();
+        setState(() {
+          _isLoadingLocation = false;
+        });
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        // Show permission request dialog first
+        bool shouldRequest = await _showPermissionRequestDialog();
+        if (!shouldRequest) {
+          setState(() {
+            _isLoadingLocation = false;
+          });
+          return;
+        }
+
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          await _showPermissionDeniedDialog();
+          setState(() {
+            _isLoadingLocation = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        await _showPermissionDeniedForeverDialog();
+        setState(() {
+          _isLoadingLocation = false;
+        });
+        return;
+      }
+
+      // Permission granted! Get location quickly
+      await _getUserLocationAndCenter();
+    } catch (e) {
+      if (kDebugMode) print('Error in location permission flow: $e');
+      _showLocationErrorSnackBar('Location error: ${e.toString()}');
+      setState(() {
+        _isLoadingLocation = false;
+      });
+    }
+  }
+
+  ///  Get user location and center map very fast
+  Future<void> _getUserLocationAndCenter() async {
+    try {
+      Position position;
+
+      // Try to get last known position first (faster)
+      try {
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown != null) {
+          if (kDebugMode) {
+            print(
+                '📍 Using last known position: ${lastKnown.latitude}, ${lastKnown.longitude}');
+          }
+          position = lastKnown;
+        } else {
+          throw Exception('No last known position');
+        }
+      } catch (e) {
+        // Fallback to current position
+        if (kDebugMode) print('📍 Getting current position...');
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.best,
+          timeLimit: const Duration(
+              seconds: 10), // Increased timeout for better reliability
+        );
+      }
+
+      setState(() {
+        _userLocation = position;
+        _locationPermissionGranted = true;
+        _isLoadingLocation = false;
+      });
+
+      // Show success message with coordinates
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.location_on, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '📍 Location found! Map centered on your position\n'
+                    'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
+      if (kDebugMode) {
+        print(
+            '✅ User location obtained: ${position.latitude}, ${position.longitude}');
+        print('🗺️ Map will be centered on user location');
+        print(
+            '📊 Location state: _userLocation set, _locationPermissionGranted = true');
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error getting user location: $e');
+      _showLocationErrorSnackBar(
+          'Could not get your location. Using default location.');
+      setState(() {
+        _isLoadingLocation = false;
+      });
+    }
+  }
+
+  Future<Position?> _getCurrentLocationWithPermission() async {
+    if (_userLocation != null) {
+      return _userLocation; // Return cached location
+    }
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return null;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return null;
+      }
+
+      if (permission == LocationPermission.deniedForever) return null;
+
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+    } catch (e) {
+      if (kDebugMode) print('Error getting location: $e');
+      return null;
+    }
+  }
+
+  void _onMapLocationTapped(double lat, double lng) {
+    if (kDebugMode) {
+      print('🗺️ Map location tapped: $lat, $lng');
+    }
+    // Handle map tap - could show location details or start booking
+  }
+
+  void _centerOnUserLocation() async {
+    final location = await _getCurrentLocationWithPermission();
+    if (location != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Centered on your location: ${location.latitude.toStringAsFixed(4)}, ${location.longitude.toStringAsFixed(4)}'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to get your current location'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  //  LOCATION PERMISSION DIALOG METHODS
+
+  Future<void> _showLocationServiceDialog() async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.location_off,
+                  color: Colors.orange, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Location Services Required',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'WePark needs location services to:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.search, color: Colors.orange, size: 20),
+                SizedBox(width: 8),
+                Expanded(child: Text('Find nearby parking spots')),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.navigation, color: Colors.orange, size: 20),
+                SizedBox(width: 8),
+                Expanded(child: Text('Center map on your location')),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.directions, color: Colors.orange, size: 20),
+                SizedBox(width: 8),
+                Expanded(child: Text('Provide navigation to parking')),
+              ],
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Please enable location services in your device settings.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Geolocator.openLocationSettings();
+            },
+            icon: const Icon(Icons.settings),
+            label: const Text('Open Settings'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _showPermissionRequestDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.location_searching,
+                  color: Colors.blue, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Location Permission',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'WePark needs access to your location to show nearby parking spots and center the map on your position.',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.security, color: Colors.green, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Your location is only used to improve your parking experience',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not Now'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.location_on),
+            label: const Text('Allow Location'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  Future<void> _showPermissionDeniedDialog() async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.location_disabled,
+                  color: Colors.red, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text('Permission Denied'),
+          ],
+        ),
+        content: const Text(
+          'Location permission was denied. You can still browse parking locations, but the map won\'t center on your location.',
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPermissionDeniedForeverDialog() async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.block, color: Colors.red, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text('Permission Blocked'),
+          ],
+        ),
+        content: const Text(
+          'Location permission has been permanently denied. To use location features, please enable location permission for WePark in your device settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Geolocator.openAppSettings();
+            },
+            icon: const Icon(Icons.settings),
+            label: const Text('Open Settings'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -187,12 +645,12 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   Widget _buildSearchSection() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(8),
@@ -204,7 +662,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     color: Colors.grey[500],
                     size: 16,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: TextField(
                       controller: _searchController,
@@ -212,7 +670,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                         hintText: 'Search location...',
                         hintStyle: TextStyle(
                           color: Colors.grey[500],
-                          fontSize: 14,
+                          fontSize: 10,
                         ),
                         border: InputBorder.none,
                       ),
@@ -223,16 +681,46 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.my_location,
-              color: Colors.orange,
-              size: 16,
+          GestureDetector(
+            onTap: _isLoadingLocation
+                ? null
+                : () {
+                    if (!_locationPermissionGranted) {
+                      _requestLocationPermissionAndGetLocation();
+                    } else {
+                      _centerOnUserLocation();
+                    }
+                  },
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _locationPermissionGranted
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: _locationPermissionGranted
+                    ? Border.all(color: Colors.green.withOpacity(0.3))
+                    : null,
+              ),
+              child: _isLoadingLocation
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.orange),
+                      ),
+                    )
+                  : Icon(
+                      _locationPermissionGranted
+                          ? Icons.location_on
+                          : Icons.my_location,
+                      color: _locationPermissionGranted
+                          ? Colors.green
+                          : Colors.orange,
+                      size: 16,
+                    ),
             ),
           ),
         ],
@@ -247,49 +735,21 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       color: Colors.white,
       child: Column(
         children: [
-          // Map header with toggle
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.map,
-                  color: Colors.orange,
-                  size: 18,
-                ),
-                const SizedBox(width: 6),
-                const Text(
-                  'Static Map View',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Live',
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+          // 30% of screen height for much better visibility
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: MediaQuery.of(context).size.height *
+                0.3, // 🎯 DRAMATICALLY INCREASED MAP SIZE
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-          ),
-
-          // Gebeta Maps Widget
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            height: 200,
             child: parkingLocationsAsync.when(
               loading: () => Container(
                 decoration: BoxDecoration(
@@ -353,23 +813,70 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   ),
                 ),
               ),
-              data: (parkingLocations) => InteractiveMapboxWidget(
-                centerLat:
-                    9.0120, // Meskel Square - Famous landmark in Addis Ababa
-                centerLng: 38.7634,
-                initialZoom: 15.0,
-                parkingLocations: parkingLocations,
-                onLocationSelected:
-                    null, // Makes map static - no tap interactions
-                showMarkers: true,
-                showCurrentLocation: true,
-                showZoomControls:
-                    false, // Hide zoom controls for static appearance
+              data: (parkingLocations) => ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  children: [
+                    InteractiveMapboxWidget(
+                      key: ValueKey(
+                          'map_${_userLocation?.latitude}_${_userLocation?.longitude}'), // 🔥 Force rebuild when location changes
+                      centerLat: _userLocation?.latitude ??
+                          9.0120, // Use user location or default
+                      centerLng: _userLocation?.longitude ?? 38.7634,
+                      initialZoom: 16.0, // Closer zoom for better detail
+                      parkingLocations: parkingLocations,
+                      onLocationSelected: _onMapLocationTapped,
+                      showMarkers: true,
+                      showCurrentLocation: true,
+                      showZoomControls: true,
+                      userLocationLat:
+                          _userLocation?.latitude, // 🎯 Pass user location
+                      userLocationLng:
+                          _userLocation?.longitude, // 🎯 Pass user location
+                    ),
+
+                    // Current location button
+                    Positioned(
+                      bottom: 16,
+                      right: 16,
+                      child: FloatingActionButton(
+                        mini: true,
+                        onPressed: _centerOnUserLocation,
+                        backgroundColor: Colors.white,
+                        elevation: 4,
+                        child:
+                            const Icon(Icons.my_location, color: Colors.orange),
+                      ),
+                    ),
+
+                    // Location count indicator
+                    Positioned(
+                      top: 16,
+                      left: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${parkingLocations.length} locations',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -502,123 +1009,167 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
 
   Widget _buildParkingItem(ParkingLocation location) {
     return Container(
+      height: 140, // 🔥 FIXED COMPACT HEIGHT - Much smaller than before!
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          // 📸 REAL PARKING IMAGES
+          // 📸 COMPACT IMAGE SECTION
           Container(
-            height: 120,
+            width: 120,
+            height: 140,
             decoration: BoxDecoration(
-              color: Colors.grey[200],
+              color: Colors.grey[100],
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+                topLeft: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
               ),
             ),
-            child: _buildLocationImage(location),
-          ),
-
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        location.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
+                  ),
+                  child: _buildCompactLocationImage(location),
+                ),
+
+                // Availability badge
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: location.hasAvailableSpots
+                          ? Colors.green
+                          : Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      location.hasAvailableSpots ? 'Available' : 'Full',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Row(
+                  ),
+                ),
+
+                // Rating badge
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.star,
-                          size: 16,
-                          color: Colors.orange,
-                        ),
-                        SizedBox(width: 4),
+                        Icon(Icons.star, color: Colors.orange, size: 12),
+                        SizedBox(width: 2),
                         Text(
-                          '4.5', // Default rating since it's not in the model
+                          '4.5',
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  location.address,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: Colors.grey[500],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '0.5 km', // Default distance since it's not in the model
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
+              ],
+            ),
+          ),
+
+          //  Super compact and information-dense
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name and pricing row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          location.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(
-                      Icons.local_parking,
-                      size: 16,
-                      color: Colors.grey[500],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${location.availableSpots}/${location.totalSpots} available',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
+                      Text(
+                        location.formattedHourlyRate,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Address
+                  Text(
+                    location.address,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text(
-                      location.formattedHourlyRate,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Info chips row
+                  Row(
+                    children: [
+                      _buildCompactInfoChip(
+                        Icons.location_on_outlined,
+                        '0.5 km',
+                        Colors.blue,
                       ),
-                    ),
-                    const Spacer(),
-                    ElevatedButton(
+                      const SizedBox(width: 8),
+                      _buildCompactInfoChip(
+                        Icons.local_parking_outlined,
+                        '${location.availableSpots}/${location.totalSpots}',
+                        location.hasAvailableSpots ? Colors.green : Colors.red,
+                      ),
+                    ],
+                  ),
+
+                  const Spacer(),
+
+                  // Book now button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 32, // Compact button height
+                    child: ElevatedButton(
                       onPressed: () => _bookParking(context, location),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
@@ -626,12 +1177,27 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        padding: EdgeInsets.zero,
+                        elevation: 0,
                       ),
-                      child: const Text('Book Now'),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.local_parking, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            'Book Now',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -639,122 +1205,77 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
     );
   }
 
-  // 📸 BUILD LOCATION IMAGE WITH FALLBACK
-  Widget _buildLocationImage(ParkingLocation location) {
-    // Check if location has images
+
+  Widget _buildCompactInfoChip(IconData icon, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //COMPACT IMAGE WIDGET
+  Widget _buildCompactLocationImage(ParkingLocation location) {
     if (location.images != null && location.images!.isNotEmpty) {
-      final imageUrl = location.images!.first;
-
-      return ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
-        ),
-        child: Stack(
-          children: [
-            // Main image
-            Image.network(
-              imageUrl,
-              width: double.infinity,
-              height: 120,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(
-                  width: double.infinity,
-                  height: 120,
-                  color: Colors.grey[200],
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                      color: Colors.orange,
-                      strokeWidth: 2,
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return _buildImagePlaceholder();
-              },
-            ),
-
-            // Image count indicator (if multiple images)
-            if (location.images!.length > 1)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${location.images!.length} photos',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-
-            // Availability indicator
-            Positioned(
-              top: 8,
-              left: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: location.hasAvailableSpots ? Colors.green : Colors.red,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  location.hasAvailableSpots ? 'Available' : 'Full',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      return Image.network(
+        location.images!.first,
+        width: 120,
+        height: 140,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildCompactImagePlaceholder(),
       );
     } else {
-      // Fallback to placeholder if no images
-      return _buildImagePlaceholder();
+      return _buildCompactImagePlaceholder();
     }
   }
 
-  // 🎨 FALLBACK PLACEHOLDER
-  Widget _buildImagePlaceholder() {
-    return Center(
+  Widget _buildCompactImagePlaceholder() {
+    return Container(
+      width: 120,
+      height: 140,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.orange[100]!,
+            Colors.orange[200]!,
+          ],
+        ),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.local_parking,
-            size: 48,
-            color: Colors.grey[400],
+            size: 32,
+            color: Colors.orange[600],
           ),
           const SizedBox(height: 4),
           Text(
-            'No image available',
+            'Parking',
             style: TextStyle(
-              color: Colors.grey[500],
               fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.orange[700],
             ),
           ),
         ],
@@ -886,7 +1407,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 🔧 FIX: Dynamic total calculation
+              //  Dynamic total calculation
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
