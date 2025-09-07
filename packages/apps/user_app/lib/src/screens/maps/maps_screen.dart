@@ -337,6 +337,14 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
                 showMarkers: true,
                 showCurrentLocation: true,
                 showZoomControls: true,
+                showStyleToggle: true, // Enable style toggle
+                onStyleChanged: (styleName) {
+                  print(' Maps screen style changed to: $styleName');
+                },
+                onExpandChanged: (isExpanded) {
+                  print(' Maps screen expansion state: $isExpanded');
+                  // Maps screen doesn't need expansion for now
+                },
               ),
             ),
           ),

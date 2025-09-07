@@ -27,6 +27,12 @@ dependencies:
   # QR Code Generation
   qr_flutter: ^4.1.0
 
+  # Location Services
+  geolocator: ^10.1.0
+
+  # URL Launcher for external apps
+  url_launcher: ^6.2.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

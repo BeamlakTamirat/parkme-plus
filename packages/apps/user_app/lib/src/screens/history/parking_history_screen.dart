@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +16,13 @@ class ParkingHistoryScreen extends ConsumerStatefulWidget {
 
 class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
   Map<String, String> _locationNames = {};
+
+  // Filter state management
+  String _selectedFilter =
+      'all'; // 'all', 'active', 'pending', 'completed', 'cancelled'
+  List<Booking> _originalBookings = []; // Store original unfiltered bookings
+  List<Booking> _filteredBookings = []; // Store filtered bookings
+  bool _isFiltering = false;
 
   @override
   void initState() {
@@ -38,6 +46,74 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
 
   String _getLocationName(String locationId) {
     return _locationNames[locationId] ?? 'Unknown Location';
+  }
+
+  ///  Apply filtering based on selected filter criteria
+  void _applyFilter() {
+    if (_originalBookings.isEmpty) return;
+
+    setState(() {
+      _isFiltering = true;
+    });
+
+    List<Booking> filteredBookings;
+
+    switch (_selectedFilter) {
+      case 'all':
+        filteredBookings = List.from(_originalBookings);
+        break;
+
+      case 'active':
+        filteredBookings = _originalBookings
+            .where((booking) => booking.status.toLowerCase() == 'active')
+            .toList();
+        break;
+
+      case 'pending':
+        filteredBookings = _originalBookings
+            .where((booking) => booking.status.toLowerCase() == 'pending')
+            .toList();
+        break;
+
+      case 'completed':
+        filteredBookings = _originalBookings
+            .where((booking) => booking.status.toLowerCase() == 'completed')
+            .toList();
+        break;
+
+      case 'cancelled':
+        filteredBookings = _originalBookings
+            .where((booking) => booking.status.toLowerCase() == 'cancelled')
+            .toList();
+        break;
+
+      default:
+        filteredBookings = List.from(_originalBookings);
+    }
+
+    setState(() {
+      _filteredBookings = filteredBookings;
+      _isFiltering = false;
+    });
+
+    if (kDebugMode) {
+      print(' Applied booking filter: $_selectedFilter');
+      print('   Original bookings: ${_originalBookings.length}');
+      print('   Filtered bookings: ${filteredBookings.length}');
+    }
+  }
+
+  /// 🔄 Reset filter to show all bookings
+  void _resetFilter() {
+    setState(() {
+      _selectedFilter = 'all';
+      _filteredBookings = List.from(_originalBookings);
+      _isFiltering = false;
+    });
+
+    if (kDebugMode) {
+      print('🔄 Reset booking filter to show all bookings');
+    }
   }
 
   @override
@@ -125,15 +201,39 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
             ),
           ),
           data: (bookings) {
-            if (bookings.isEmpty) {
+            // Store original bookings for filtering
+            if (_originalBookings.isEmpty && bookings.isNotEmpty) {
+              _originalBookings = List.from(bookings);
+              _filteredBookings = List.from(bookings);
+            }
+
+            // Use filtered bookings if available, otherwise use all bookings
+            final displayBookings =
+                _filteredBookings.isNotEmpty ? _filteredBookings : bookings;
+
+            if (displayBookings.isEmpty) {
+              String emptyMessage = 'No booking history';
+              String emptySubtitle = 'Your parking bookings will appear here';
+
+              if (_selectedFilter != 'all') {
+                emptyMessage =
+                    'No ${_selectedFilter.toLowerCase()} bookings found';
+                emptySubtitle = 'Try changing your filter or check back later';
+              }
+
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.history, size: 64, color: Colors.grey[400]),
+                    Icon(
+                        _selectedFilter == 'all'
+                            ? Icons.history
+                            : Icons.filter_list,
+                        size: 64,
+                        color: Colors.grey[400]),
                     const SizedBox(height: 16),
                     Text(
-                      'No booking history',
+                      emptyMessage,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
@@ -142,13 +242,21 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Your parking bookings will appear here',
+                      emptySubtitle,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[500],
                       ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
+                    if (_selectedFilter != 'all') ...[
+                      ElevatedButton(
+                        onPressed: _resetFilter,
+                        child: const Text('Show All Bookings'),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     ElevatedButton(
                       onPressed: () => context.go('/find-parking'),
                       child: const Text('Find Parking'),
@@ -158,56 +266,123 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
               );
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: bookings.length,
-              itemBuilder: (context, index) {
-                final booking = bookings[index];
-                return Column(
-                  children: [
-                    _buildHistoryItem(
-                      location: _getLocationName(booking
-                          .parkingLocationId), // 🔧 FIX: Use real location name
-                      space: booking.spotNumber,
-                      vehicle: booking.vehiclePlateNumber,
-                      date: booking.formattedStartTime,
-                      time:
-                          '${booking.formattedStartTime} - ${booking.formattedEndTime}',
-                      duration:
-                          '${booking.durationInHours.toStringAsFixed(1)} hours',
-                      cost: booking.formattedTotalAmount,
-                      status: booking.status,
-                      statusColor: _getStatusColor(booking.status),
-                      primaryAction: booking.isActive ? 'Manage' : 'Book Again',
-                      primaryActionColor: Colors.orange,
-                      secondaryAction: booking.status == 'pending' ||
-                              booking.status == 'active'
-                          ? 'Show QR Code'
-                          : 'View Details',
-                      onPrimaryAction: () {
-                        if (booking.isActive) {
-                          // Navigate to active booking
-                          context.push('/booking', extra: {
-                            'booking': booking,
-                            'action': 'view',
-                          });
-                        } else {
-                          // Navigate to find parking with previous location data
-                          context.push('/find-parking', extra: {
-                            'previousBooking': booking,
-                            'action': 'book_again',
-                          });
-                        }
-                      },
-                      onSecondaryAction: () {
-                        // Show booking details with QR code if applicable
-                        _showBookingDetails(context, booking);
-                      },
+            return Column(
+              children: [
+                // Filter status indicator (only show if filter is applied)
+                if (_selectedFilter != 'all' && !_isFiltering) ...[
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue[200]!),
                     ),
-                    if (index < bookings.length - 1) const SizedBox(height: 16),
-                  ],
-                );
-              },
+                    child: Row(
+                      children: [
+                        Icon(Icons.filter_list,
+                            size: 16, color: Colors.blue[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Showing ${_selectedFilter.toLowerCase()} bookings (${displayBookings.length})',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _resetFilter,
+                          icon: Icon(Icons.clear,
+                              size: 16, color: Colors.blue[700]),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Bookings list
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    itemCount: displayBookings.length,
+                    itemBuilder: (context, index) {
+                      final booking = displayBookings[index];
+                      return Column(
+                        children: [
+                          _buildHistoryItem(
+                            location:
+                                _getLocationName(booking.parkingLocationId),
+                            space: booking.spotNumber,
+                            vehicle: booking.vehiclePlateNumber,
+                            date: booking.formattedStartTime,
+                            time:
+                                '${booking.formattedStartTime} - ${booking.formattedEndTime}',
+                            duration:
+                                '${booking.durationInHours.toStringAsFixed(1)} hours',
+                            cost: booking.formattedTotalAmount,
+                            status: booking.status,
+                            statusColor: _getStatusColor(booking.status),
+                            primaryAction:
+                                booking.isActive ? 'Manage' : 'Book Again',
+                            primaryActionColor: Colors.orange,
+                            secondaryAction: booking.status == 'pending'
+                                ? 'Navigate'
+                                : booking.status == 'active'
+                                    ? 'Show QR Code'
+                                    : 'View Details',
+                            tertiaryAction: booking.status == 'pending' ||
+                                    booking.status == 'active'
+                                ? 'Show QR Code'
+                                : null,
+                            quaternaryAction: booking.status == 'pending'
+                                ? 'Cancel Booking'
+                                : null,
+                            onPrimaryAction: () {
+                              if (booking.isActive) {
+                                // Navigate to active booking
+                                context.push('/booking', extra: {
+                                  'booking': booking,
+                                  'action': 'view',
+                                });
+                              } else {
+                                // Navigate to find parking with previous location data
+                                context.push('/find-parking', extra: {
+                                  'previousBooking': booking,
+                                  'action': 'book_again',
+                                });
+                              }
+                            },
+                            onSecondaryAction: () {
+                              if (booking.status == 'pending') {
+                                // Navigate to parking location
+                                _navigateToParking(context, booking);
+                              } else {
+                                // Show booking details with QR code if applicable
+                                _showBookingDetails(context, booking);
+                              }
+                            },
+                            onTertiaryAction: booking.status == 'pending' ||
+                                    booking.status == 'active'
+                                ? () => _showBookingDetails(context, booking)
+                                : null,
+                            onQuaternaryAction: booking.status == 'pending'
+                                ? () => _cancelBooking(context, booking)
+                                : null,
+                          ),
+                          if (index < displayBookings.length - 1)
+                            const SizedBox(height: 16),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -424,8 +599,12 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
     required String primaryAction,
     required Color primaryActionColor,
     required String secondaryAction,
+    String? tertiaryAction,
+    String? quaternaryAction,
     required VoidCallback onPrimaryAction,
     required VoidCallback onSecondaryAction,
+    VoidCallback? onTertiaryAction,
+    VoidCallback? onQuaternaryAction,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -588,39 +767,137 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
             const SizedBox(height: 16),
 
             // Actions
-            Row(
+            Column(
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onPrimaryAction,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryActionColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                // Check if we have 4 buttons (for pending bookings with cancel option)
+                if (quaternaryAction != null && onQuaternaryAction != null) ...[
+                  // 2x2 Grid layout for 4 buttons
+                  GridView.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio:
+                        2.5, // Make buttons wider but not too tall
+                    children: [
+                      // Primary action button - Book Again/Manage
+                      _buildCompactButton(
+                        label: primaryAction,
+                        icon: primaryAction == 'Book Again'
+                            ? Icons.refresh
+                            : Icons.settings,
+                        color: primaryActionColor,
+                        onPressed: onPrimaryAction,
+                        isPrimary: true,
                       ),
-                    ),
-                    child: Text(primaryAction),
+
+                      // Secondary action button - Navigate
+                      _buildCompactButton(
+                        label: secondaryAction,
+                        icon: secondaryAction == 'Navigate'
+                            ? Icons.navigation
+                            : secondaryAction == 'Show QR Code'
+                                ? Icons.qr_code
+                                : Icons.info,
+                        color: Colors.grey[
+                            700]!, // Make it bold grey like "View Details"
+                        onPressed: onSecondaryAction,
+                      ),
+
+                      // Tertiary action button - Show QR Code
+                      if (tertiaryAction != null &&
+                          onTertiaryAction != null) ...[
+                        _buildCompactButton(
+                          label: tertiaryAction,
+                          icon: Icons.qr_code_scanner,
+                          color: Colors.grey[
+                              700]!, // Make it bold grey like "View Details"
+                          onPressed: onTertiaryAction,
+                        ),
+                      ] else ...[
+                        const SizedBox.shrink(),
+                      ],
+
+                      // Quaternary action button - Cancel Booking
+                      _buildCompactButton(
+                        label: quaternaryAction,
+                        icon: Icons.cancel,
+                        color: Colors.red,
+                        onPressed: onQuaternaryAction,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onSecondaryAction,
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey[300]!),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                ] else ...[
+                  // Standard 2-button layout for other bookings
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: onPrimaryAction,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryActionColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(primaryAction),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      secondaryAction,
-                      style: TextStyle(
-                        color: Colors.grey[700],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onSecondaryAction,
+                          icon: Icon(
+                            secondaryAction == 'Navigate'
+                                ? Icons.navigation
+                                : secondaryAction == 'Show QR Code'
+                                    ? Icons.qr_code
+                                    : Icons.info,
+                            size: 16,
+                          ),
+                          label: Text(secondaryAction),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: secondaryAction == 'Navigate'
+                                  ? Colors.green
+                                  : Colors.grey[300]!,
+                            ),
+                            foregroundColor: secondaryAction == 'Navigate'
+                                ? Colors.green
+                                : Colors.grey[700],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ),
+
+                  // Tertiary action for non-pending bookings
+                  if (tertiaryAction != null &&
+                      onTertiaryAction != null &&
+                      status.toLowerCase() != 'active') ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: onTertiaryAction,
+                        icon: const Icon(Icons.qr_code, size: 16),
+                        label: Text(tertiaryAction),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey[300]!),
+                          foregroundColor: Colors.grey[700],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ],
             ),
           ],
@@ -629,69 +906,518 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
     );
   }
 
-  void _showFilterDialog(BuildContext context) {
-    showDialog(
+  void _navigateToParking(BuildContext context, Booking booking) {
+    context.push('/navigation', extra: {
+      'booking': booking,
+      'action': 'navigate_to_parking',
+    });
+  }
+
+  /// 🎨 Build compact button for grid layout (2x2 for 4 buttons)
+  Widget _buildCompactButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    bool isPrimary = false,
+  }) {
+    return SizedBox(
+      height: 36, // Compact height to fit 4 buttons nicely
+      child: isPrimary
+          ? ElevatedButton.icon(
+              onPressed: onPressed,
+              icon: Icon(icon, size: 14),
+              label: Flexible(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                elevation: 2,
+                shadowColor: color.withOpacity(0.3),
+              ),
+            )
+          : OutlinedButton.icon(
+              onPressed: onPressed,
+              icon: Icon(icon, size: 14),
+              label: Flexible(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight:
+                        FontWeight.w600, // Make text bolder like "View Details"
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                    color: Colors.grey[300]!,
+                    width: 1), // Same border as "View Details"
+                foregroundColor: color,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+            ),
+    );
+  }
+
+  /// 🗑️ Cancel booking with confirmation dialog
+  Future<void> _cancelBooking(BuildContext context, Booking booking) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Filter Bookings'),
+        title: const Text('Cancel Booking'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              title: const Text('All Bookings'),
-              leading: Radio<String>(
-                value: 'all',
-                groupValue: 'all',
-                onChanged: (value) {
-                  Navigator.pop(context);
-                },
+            Text(
+              'Are you sure you want to cancel this booking?',
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 16,
               ),
             ),
-            ListTile(
-              title: const Text('Active Bookings'),
-              leading: Radio<String>(
-                value: 'active',
-                groupValue: 'all',
-                onChanged: (value) {
-                  Navigator.pop(context);
-                },
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Location: ${_getLocationName(booking.parkingLocationId)}',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Spot: ${booking.spotNumber}'),
+                  const SizedBox(height: 4),
+                  Text('Vehicle: ${booking.vehiclePlateNumber}'),
+                  const SizedBox(height: 4),
+                  Text(
+                      'Time: ${booking.formattedStartTime} - ${booking.formattedEndTime}'),
+                  const SizedBox(height: 4),
+                  Text('Amount: ${booking.formattedTotalAmount}'),
+                ],
               ),
             ),
-            ListTile(
-              title: const Text('Completed Bookings'),
-              leading: Radio<String>(
-                value: 'completed',
-                groupValue: 'all',
-                onChanged: (value) {
-                  Navigator.pop(context);
-                },
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber[50],
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.amber[200]!),
               ),
-            ),
-            ListTile(
-              title: const Text('Cancelled Bookings'),
-              leading: Radio<String>(
-                value: 'cancelled',
-                groupValue: 'all',
-                onChanged: (value) {
-                  Navigator.pop(context);
-                },
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning,
+                    color: Colors.amber[700],
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone. The booking will be cancelled and any refund will be processed according to our policy.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.amber[800],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep Booking'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Apply filter
-            },
-            child: const Text('Apply'),
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Cancel Booking'),
           ),
         ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        // Show loading dialog
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 16),
+                  Text('Cancelling booking...'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Cancel the booking by updating its status
+        final updatedBooking = booking.copyWith(
+          status: 'cancelled',
+          updatedAt: DateTime.now(),
+        );
+
+        final databaseService = ref.read(databaseServiceProvider);
+        final success = await databaseService.updateBooking(updatedBooking);
+
+        // Close loading dialog
+        if (context.mounted) {
+          Navigator.pop(context); // Close loading dialog
+        }
+
+        if (success) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('Booking cancelled successfully'),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 3),
+              ),
+            );
+
+            // Refresh the booking list
+            ref.invalidate(bookingHistoryProvider);
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.error, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('Failed to cancel booking. Please try again.'),
+                  ],
+                ),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        // Close loading dialog if still open
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text('Error cancelling booking: $e'),
+                ],
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showFilterDialog(BuildContext context) {
+    String tempSelectedFilter =
+        _selectedFilter; // Temporary variable for dialog state
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Row(
+            children: [
+              const Text('Filter Bookings'),
+              const Spacer(),
+              if (_selectedFilter != 'all') ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_filteredBookings.length} found',
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          content: Container(
+            width: double.maxFinite,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height *
+                  0.7, // Limit to 70% of screen height
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Filter options with proper radio buttons
+                  _buildFilterOption(
+                    context: context,
+                    setState: setState,
+                    title: 'All Bookings',
+                    subtitle: 'Show all your parking bookings',
+                    value: 'all',
+                    tempValue: tempSelectedFilter,
+                    onChanged: (value) {
+                      tempSelectedFilter = value!;
+                      setState(() {});
+                    },
+                    icon: Icons.list,
+                    color: Colors.grey,
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  _buildFilterOption(
+                    context: context,
+                    setState: setState,
+                    title: 'Active',
+                    subtitle: 'Currently parked vehicles',
+                    value: 'active',
+                    tempValue: tempSelectedFilter,
+                    onChanged: (value) {
+                      tempSelectedFilter = value!;
+                      setState(() {});
+                    },
+                    icon: Icons.local_parking,
+                    color: Colors.orange,
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  _buildFilterOption(
+                    context: context,
+                    setState: setState,
+                    title: 'Pending',
+                    subtitle: 'Upcoming parking reservations',
+                    value: 'pending',
+                    tempValue: tempSelectedFilter,
+                    onChanged: (value) {
+                      tempSelectedFilter = value!;
+                      setState(() {});
+                    },
+                    icon: Icons.schedule,
+                    color: Colors.blue,
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  _buildFilterOption(
+                    context: context,
+                    setState: setState,
+                    title: 'Completed',
+                    subtitle: 'Finished parking sessions',
+                    value: 'completed',
+                    tempValue: tempSelectedFilter,
+                    onChanged: (value) {
+                      tempSelectedFilter = value!;
+                      setState(() {});
+                    },
+                    icon: Icons.check_circle,
+                    color: Colors.green,
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  _buildFilterOption(
+                    context: context,
+                    setState: setState,
+                    title: 'Cancelled',
+                    subtitle: 'Cancelled parking reservations',
+                    value: 'cancelled',
+                    tempValue: tempSelectedFilter,
+                    onChanged: (value) {
+                      tempSelectedFilter = value!;
+                      setState(() {});
+                    },
+                    icon: Icons.cancel,
+                    color: Colors.red,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Filter summary - more compact
+                  if (tempSelectedFilter != 'all') ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Filter Preview',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Showing ${tempSelectedFilter.toLowerCase()} bookings only',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            if (_selectedFilter != 'all') ...[
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _resetFilter();
+                },
+                child: const Text('Clear Filter'),
+              ),
+            ],
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // Apply the selected filter
+                if (_selectedFilter != tempSelectedFilter) {
+                  setState(() {
+                    _selectedFilter = tempSelectedFilter;
+                  });
+                  _applyFilter();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Apply Filter'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 🎯 Helper method to build filter option with proper styling
+  Widget _buildFilterOption({
+    required BuildContext context,
+    required StateSetter setState,
+    required String title,
+    required String subtitle,
+    required String value,
+    required String tempValue,
+    required ValueChanged<String?> onChanged,
+    required IconData icon,
+    required Color color,
+  }) {
+    final isSelected = tempValue == value;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: isSelected ? color : Colors.grey[300]!,
+          width: isSelected ? 2 : 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        color: isSelected ? color.withOpacity(0.05) : Colors.white,
+      ),
+      child: ListTile(
+        leading: Radio<String>(
+          value: value,
+          groupValue: tempValue,
+          onChanged: onChanged,
+          activeColor: color,
+        ),
+        title: Row(
+          children: [
+            Icon(icon, size: 18, color: isSelected ? color : Colors.grey[600]),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? color : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[600],
+          ),
+        ),
+        onTap: () => onChanged(value),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        dense: true,
       ),
     );
   }

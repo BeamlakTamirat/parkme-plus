@@ -73,7 +73,6 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(isLoadingProvider);
     final size = MediaQuery.of(context).size;
 
     return Scaffold(

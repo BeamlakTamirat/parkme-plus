@@ -16,7 +16,6 @@ class BookParkingScreen extends ConsumerStatefulWidget {
 
 class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
   String _selectedDate = 'Today';
-  final String _selectedVehicle = 'Toyota Corolla';
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 2);
 

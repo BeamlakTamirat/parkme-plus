@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'home/home_screen.dart';
-import 'parking/find_parking_screen.dart';
-import 'history/parking_history_screen.dart';
-import 'profile/profile_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final Widget child;
-  
+
   const MainNavigation({
     super.key,
     required this.child,
@@ -20,17 +16,9 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
-  
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const FindParkingScreen(),
-    const ParkingHistoryScreen(),
-    const ProfileScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -53,7 +41,6 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
       ),
-
       child: SafeArea(
         top: false,
         child: Padding(
@@ -104,7 +91,7 @@ class _MainNavigationState extends State<MainNavigation> {
     required VoidCallback onTap,
   }) {
     final isActive = _currentIndex == index;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() => _currentIndex = index);

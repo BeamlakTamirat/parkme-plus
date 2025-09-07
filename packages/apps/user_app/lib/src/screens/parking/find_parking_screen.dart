@@ -32,11 +32,32 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   bool _isLoadingLocation = false;
   bool _locationPermissionGranted = false;
 
+  // Map expansion state
+  bool _isMapExpanded = false;
+
+  // Filtered and sorted locations
+  List<ParkingLocation> _filteredLocations = [];
+
+  // Advanced filtering state
+  double _maxDistance = 10.0; // km
+  RangeValues _priceRange = const RangeValues(0, 100); // ETB/hour
+  double _minRating = 3.0; // stars
+  bool _hasAvailableSpots = false;
+  bool _showOnlyActive = true;
+  // List<String> _selectedAmenities = []; // Reserved for future amenities filtering
+  bool _useAdvancedFilters = false;
+  // bool _isFiltering = false; // Reserved for future loading state
+
   @override
   void initState() {
     super.initState();
     _handleExtraData();
     _initializeLocationAndMap();
+
+    // Apply initial filtering after location is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applyFilterAndSorting();
+    });
   }
 
   /// 🎯 Initialize location services and center map on user location
@@ -91,8 +112,6 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       }
     }
   }
-
-
 
   /// 🎯 Request location permission with user-friendly dialogs and get location
   Future<void> _requestLocationPermissionAndGetLocation() async {
@@ -566,78 +585,80 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          // Book Again Banner
-          if (_isBookAgainMode && _targetLocation != null)
-            Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange[200]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.refresh, color: Colors.orange[700], size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Booking Again',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange[800],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Book Again Banner
+            if (_isBookAgainMode && _targetLocation != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, color: Colors.orange[700], size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Booking Again',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange[800],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Taking you to ${_targetLocation!.name}...',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.orange[700],
+                          const SizedBox(height: 2),
+                          Text(
+                            'Taking you to ${_targetLocation!.name}...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.orange[700],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _isBookAgainMode = false;
-                        _targetLocation = null;
-                      });
-                    },
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: Colors.orange[700],
-                        fontWeight: FontWeight.w600,
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _isBookAgainMode = false;
+                          _targetLocation = null;
+                        });
+                      },
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.orange[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+
+            // Search and filter section
+            _buildSearchSection(),
+
+            // Map view toggle section
+            if (_showMapView) _buildMapViewSection(),
+
+            // Filter chips
+            _buildFilterSection(),
+
+            // Available parking list - now scrollable with flex to prevent overflow
+            Flexible(
+              child: _buildParkingList(),
             ),
-
-          // Search and filter section
-          _buildSearchSection(),
-
-          // Map view toggle section
-          if (_showMapView) _buildMapViewSection(),
-
-          // Filter chips
-          _buildFilterSection(),
-
-          // Available parking list - now scrollable
-          Expanded(
-            child: _buildParkingList(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -735,11 +756,14 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       color: Colors.white,
       child: Column(
         children: [
-          // 30% of screen height for much better visibility
+          // Dynamic height based on expansion state with safety constraints
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            height: MediaQuery.of(context).size.height *
-                0.3, // 🎯 DRAMATICALLY INCREASED MAP SIZE
+            height: _isMapExpanded
+                ? MediaQuery.of(context).size.height *
+                    0.58 // Expanded: 45% of screen (safer for list space)
+                : MediaQuery.of(context).size.height *
+                    0.22, // Normal: 25% of screen (more compact)
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
@@ -829,47 +853,30 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                       showMarkers: true,
                       showCurrentLocation: true,
                       showZoomControls: true,
+                      showStyleToggle: true, // Enable style toggle
                       userLocationLat:
                           _userLocation?.latitude, // 🎯 Pass user location
                       userLocationLng:
                           _userLocation?.longitude, // 🎯 Pass user location
+                      onStyleChanged: (styleName) {
+                        // Optional: Handle style change feedback
+                        if (kDebugMode) {
+                          print(' Map style changed to: $styleName');
+                        }
+                      },
+                      onExpandChanged: (isExpanded) {
+                        setState(() {
+                          _isMapExpanded = isExpanded;
+                        });
+                        if (kDebugMode) {
+                          print(' Map expansion state: $isExpanded');
+                        }
+                      },
                     ),
 
-                    // Current location button
-                    Positioned(
-                      bottom: 16,
-                      right: 16,
-                      child: FloatingActionButton(
-                        mini: true,
-                        onPressed: _centerOnUserLocation,
-                        backgroundColor: Colors.white,
-                        elevation: 4,
-                        child:
-                            const Icon(Icons.my_location, color: Colors.orange),
-                      ),
-                    ),
+                    // Removed location button to prevent conflict with expand/diminish button
 
-                    // Location count indicator
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${parkingLocations.length} locations',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
+                    // Removed location count indicator
                   ],
                 ),
               ),
@@ -899,6 +906,8 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             _buildFilterChip('Cheapest', 'Cheapest'),
             const SizedBox(width: 8),
             _buildFilterChip('Rated', 'Rated'),
+            const SizedBox(width: 8),
+            _buildFilterChip('Filtered', 'Filtered'),
           ],
         ),
       ),
@@ -907,28 +916,271 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
 
   Widget _buildFilterChip(String label, String value) {
     final isSelected = _selectedFilter == value;
+    final isFilteredActive = value == 'Filtered' && _useAdvancedFilters;
+
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
+        // If clicking on Filtered chip when it's already selected, clear advanced filters
+        if (isSelected && value == 'Filtered' && _useAdvancedFilters) {
+          _clearAdvancedFilters();
+          return;
+        }
+
         setState(() {
           _selectedFilter = value;
         });
+
+        // Apply filter and sorting
+        await _applyFilterAndSorting();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.orange : Colors.grey[100],
+          color: isSelected
+              ? Colors.orange
+              : (isFilteredActive ? Colors.orange[200] : Colors.grey[100]),
           borderRadius: BorderRadius.circular(20),
+          border: isFilteredActive
+              ? Border.all(color: Colors.orange, width: 2)
+              : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[700],
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : (isFilteredActive
+                        ? Colors.orange[800]
+                        : Colors.grey[700]),
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+            if (isFilteredActive) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  _filteredLocations.length.toString(),
+                  style: const TextStyle(
+                    color: Colors.orange,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
+  }
+
+  ///  Apply comprehensive filtering and sorting based on selected filter
+  Future<void> _applyFilterAndSorting() async {
+    try {
+      final allLocations = await ref.read(parkingLocationsProvider.future);
+      List<ParkingLocation> filteredLocations = List.from(allLocations);
+
+      // Apply user location-based filtering if needed
+      if (_userLocation != null) {
+        // Calculate distances for all locations
+        for (final location in filteredLocations) {
+          location.calculateDistance(
+              _userLocation!.latitude, _userLocation!.longitude);
+        }
+      }
+
+      switch (_selectedFilter) {
+        case 'All':
+          // No additional filtering, show all active locations
+          filteredLocations =
+              filteredLocations.where((loc) => loc.isActive).toList();
+          break;
+
+        case 'Nearby':
+          if (_userLocation != null) {
+            // Sort by distance (nearest first)
+            filteredLocations.sort((a, b) {
+              final distA = a.getDistanceFromUser(
+                      _userLocation!.latitude, _userLocation!.longitude) ??
+                  double.infinity;
+              final distB = b.getDistanceFromUser(
+                      _userLocation!.latitude, _userLocation!.longitude) ??
+                  double.infinity;
+              return distA.compareTo(distB);
+            });
+          }
+          // Filter to active locations only
+          filteredLocations =
+              filteredLocations.where((loc) => loc.isActive).toList();
+          break;
+
+        case 'Available':
+          // Sort by most available spots (descending)
+          filteredLocations
+              .sort((a, b) => b.availableSpots.compareTo(a.availableSpots));
+          // Filter to locations with available spots
+          filteredLocations = filteredLocations
+              .where((loc) => loc.availableSpots > 0 && loc.isActive)
+              .toList();
+          break;
+
+        case 'Cheapest':
+          // Sort by hourly rate (ascending - cheapest first)
+          filteredLocations
+              .sort((a, b) => a.hourlyRate.compareTo(b.hourlyRate));
+          // Filter to active locations only
+          filteredLocations =
+              filteredLocations.where((loc) => loc.isActive).toList();
+          break;
+
+        case 'Rated':
+          // Sort by rating (highest first)
+          filteredLocations.sort((a, b) => b.rating.compareTo(a.rating));
+          // Filter to active locations only
+          filteredLocations =
+              filteredLocations.where((loc) => loc.isActive).toList();
+          break;
+
+        case 'Filtered':
+          // Use the advanced filtered results
+          if (_useAdvancedFilters && _filteredLocations.isNotEmpty) {
+            filteredLocations = List.from(_filteredLocations);
+          } else {
+            // If no advanced filters applied, show all active locations
+            filteredLocations =
+                filteredLocations.where((loc) => loc.isActive).toList();
+          }
+          break;
+
+        default:
+          // Default to showing all active locations
+          filteredLocations =
+              filteredLocations.where((loc) => loc.isActive).toList();
+      }
+
+      setState(() {
+        _filteredLocations = filteredLocations;
+      });
+
+      if (kDebugMode) {
+        print(
+            ' Applied filter: $_selectedFilter, found ${filteredLocations.length} locations');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print(' Error applying filter: $e');
+      }
+      setState(() {
+        _filteredLocations = [];
+      });
+    }
+  }
+
+  ///  Apply advanced filtering based on user selections
+  Future<void> _applyAdvancedFilters() async {
+    setState(() {
+      // _isFiltering = true;
+      _useAdvancedFilters = true;
+    });
+
+    try {
+      final allLocations = await ref.read(parkingLocationsProvider.future);
+      List<ParkingLocation> filteredLocations = List.from(allLocations);
+
+      // Apply active locations filter
+      if (_showOnlyActive) {
+        filteredLocations =
+            filteredLocations.where((loc) => loc.isActive).toList();
+      }
+
+      // Apply distance filter (if user location is available)
+      if (_userLocation != null) {
+        filteredLocations = filteredLocations.where((location) {
+          final distance = location.getDistanceFromUser(
+              _userLocation!.latitude, _userLocation!.longitude);
+          return distance != null && distance <= _maxDistance;
+        }).toList();
+      }
+
+      // Apply price range filter
+      filteredLocations = filteredLocations.where((location) {
+        return location.hourlyRate >= _priceRange.start &&
+            location.hourlyRate <= _priceRange.end;
+      }).toList();
+
+      // Apply rating filter
+      filteredLocations = filteredLocations.where((location) {
+        return location.rating >= _minRating;
+      }).toList();
+
+      // Apply available spots filter
+      if (_hasAvailableSpots) {
+        filteredLocations = filteredLocations.where((location) {
+          return location.availableSpots > 0;
+        }).toList();
+      }
+
+      setState(() {
+        _filteredLocations = filteredLocations;
+        _selectedFilter = 'Filtered'; // Switch to filtered view
+      });
+
+      if (kDebugMode) {
+        print(' Applied advanced filters:');
+        print('   Distance: ≤ ${_maxDistance.toStringAsFixed(1)} km');
+        print(
+            '   Price: ${_priceRange.start.toInt()} - ${_priceRange.end.toInt()} ETB/hr');
+        print('   Rating: ≥ ${_minRating.toStringAsFixed(1)} ★');
+        print(
+            '   Available spots: ${_hasAvailableSpots ? 'Required' : 'Optional'}');
+        print('   Active locations: ${_showOnlyActive ? 'Only' : 'All'}');
+        print('   Results: ${filteredLocations.length} locations found');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print(' Error applying advanced filters: $e');
+      }
+      setState(() {
+        _filteredLocations = [];
+      });
+    } finally {
+      setState(() {
+        // _isFiltering = false;
+      });
+    }
+  }
+
+  /// 🧹 Clear advanced filters and reset to default state
+  void _clearAdvancedFilters() {
+    setState(() {
+      _useAdvancedFilters = false;
+      _filteredLocations = [];
+      _selectedFilter = 'All';
+
+      // Reset filter values to defaults
+      _maxDistance = 10.0;
+      _priceRange = const RangeValues(0, 100);
+      _minRating = 3.0;
+      _hasAvailableSpots = false;
+      _showOnlyActive = true;
+      // _selectedAmenities = [];
+    });
+
+    // Reapply default filtering
+    _applyFilterAndSorting();
+
+    if (kDebugMode) {
+      print(' Cleared advanced filters, reset to default state');
+    }
   }
 
   Widget _buildParkingList() {
@@ -958,7 +1210,12 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
         ),
       ),
       data: (parkingLocations) {
-        if (parkingLocations.isEmpty) {
+        // Use filtered locations if available, otherwise apply default filtering
+        final displayLocations = _filteredLocations.isNotEmpty
+            ? _filteredLocations
+            : parkingLocations.where((loc) => loc.isActive).toList();
+
+        if (displayLocations.isEmpty) {
           return SizedBox(
             height: 200,
             child: Center(
@@ -968,7 +1225,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   Icon(Icons.local_parking, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'No parking locations found',
+                    _selectedFilter == 'All'
+                        ? 'No parking locations found'
+                        : 'No locations match your filter',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -977,7 +1236,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Check back later for available parking spots',
+                    _selectedFilter == 'All'
+                        ? 'Check back later for available parking spots'
+                        : 'Try changing your filter criteria',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[500],
@@ -990,15 +1251,16 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: parkingLocations.length,
+          padding:
+              const EdgeInsets.fromLTRB(16, 8, 16, 16), // Reduced top padding
+          itemCount: displayLocations.length,
           itemBuilder: (context, index) {
-            final location = parkingLocations[index];
+            final location = displayLocations[index];
             return Column(
               children: [
                 _buildParkingItem(location),
-                if (index < parkingLocations.length - 1)
-                  const SizedBox(height: 16),
+                if (index < displayLocations.length - 1)
+                  const SizedBox(height: 12), // Slightly reduced spacing
               ],
             );
           },
@@ -1009,7 +1271,10 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
 
   Widget _buildParkingItem(ParkingLocation location) {
     return Container(
-      height: 140, // 🔥 FIXED COMPACT HEIGHT - Much smaller than before!
+      constraints: const BoxConstraints(
+        minHeight: 140, // Minimum height to ensure content fits
+        maxHeight: 160, // Maximum height to prevent excessive space usage
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -1026,7 +1291,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           // 📸 COMPACT IMAGE SECTION
           Container(
             width: 120,
-            height: 140,
+            constraints: const BoxConstraints(minHeight: 140, maxHeight: 160),
             decoration: BoxDecoration(
               color: Colors.grey[100],
               borderRadius: const BorderRadius.only(
@@ -1079,14 +1344,14 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                       color: Colors.black.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.star, color: Colors.orange, size: 12),
-                        SizedBox(width: 2),
+                        const Icon(Icons.star, color: Colors.orange, size: 12),
+                        const SizedBox(width: 2),
                         Text(
-                          '4.5',
-                          style: TextStyle(
+                          location.formattedRating,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -1144,6 +1409,27 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+
+                  // Car Icon below location name and address
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.directions_car,
+                        size: 16,
+                        color: Colors.orange[700],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Parking Available',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
 
                   // Info chips row
@@ -1151,13 +1437,17 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     children: [
                       _buildCompactInfoChip(
                         Icons.location_on_outlined,
-                        '0.5 km',
+                        _userLocation != null
+                            ? location.getFormattedDistance(
+                                _userLocation!.latitude,
+                                _userLocation!.longitude)
+                            : 'Distance unavailable',
                         Colors.blue,
                       ),
                       const SizedBox(width: 8),
                       _buildCompactInfoChip(
                         Icons.local_parking_outlined,
-                        '${location.availableSpots}/${location.totalSpots}',
+                        '${location.availableSpots}/${location.totalSpots} available',
                         location.hasAvailableSpots ? Colors.green : Colors.red,
                       ),
                     ],
@@ -1204,7 +1494,6 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       ),
     );
   }
-
 
   Widget _buildCompactInfoChip(IconData icon, String text, Color color) {
     return Container(
@@ -1286,53 +1575,267 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   void _showFilterDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Filter Options'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('Price Range'),
-              subtitle: const Text('0 - 50 ETB/hour'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.pop(context);
-                // Show price range picker
-              },
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Row(
+            children: [
+              const Text('Advanced Filters'),
+              const Spacer(),
+              if (_useAdvancedFilters)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green[100],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle,
+                          color: Colors.green, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_filteredLocations.length} found',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Distance Filter
+                const Text(
+                  'Maximum Distance',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                Slider(
+                  value: _maxDistance,
+                  min: 1.0,
+                  max: 50.0,
+                  divisions: 49,
+                  label: '${_maxDistance.toStringAsFixed(1)} km',
+                  onChanged: (value) {
+                    setState(() => _maxDistance = value);
+                  },
+                ),
+                Text(
+                  '${_maxDistance.toStringAsFixed(1)} km from your location',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Price Range Filter
+                const Text(
+                  'Price Range (ETB/hour)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                RangeSlider(
+                  values: _priceRange,
+                  min: 0,
+                  max: 200,
+                  divisions: 20,
+                  labels: RangeLabels(
+                    '${_priceRange.start.toInt()}',
+                    '${_priceRange.end.toInt()}',
+                  ),
+                  onChanged: (values) {
+                    setState(() => _priceRange = values);
+                  },
+                ),
+                Text(
+                  '${_priceRange.start.toInt()} - ${_priceRange.end.toInt()} ETB/hour',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Rating Filter
+                const Text(
+                  'Minimum Rating',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                Slider(
+                  value: _minRating,
+                  min: 1.0,
+                  max: 5.0,
+                  divisions: 8,
+                  label: '${_minRating.toStringAsFixed(1)} ★',
+                  onChanged: (value) {
+                    setState(() => _minRating = value);
+                  },
+                ),
+                Row(
+                  children: [
+                    Text(
+                      '${_minRating.toStringAsFixed(1)} stars and above',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: List.generate(
+                        5,
+                        (index) => Icon(
+                          index < _minRating ? Icons.star : Icons.star_border,
+                          size: 16,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Availability Filter
+                Row(
+                  children: [
+                    const Text(
+                      'Only Available Spots',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: _hasAvailableSpots,
+                      onChanged: (value) {
+                        setState(() => _hasAvailableSpots = value);
+                      },
+                      activeColor: Colors.orange,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Active Locations Filter
+                Row(
+                  children: [
+                    const Text(
+                      'Only Active Locations',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: _showOnlyActive,
+                      onChanged: (value) {
+                        setState(() => _showOnlyActive = value);
+                      },
+                      activeColor: Colors.orange,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Filter Summary
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Filter Summary',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Distance: ≤ ${_maxDistance.toStringAsFixed(1)} km\n'
+                        'Price: ${_priceRange.start.toInt()} - ${_priceRange.end.toInt()} ETB/hr\n'
+                        'Rating: ≥ ${_minRating.toStringAsFixed(1)} ★\n'
+                        'Available spots: ${_hasAvailableSpots ? 'Required' : 'Optional'}\n'
+                        'Active locations: ${_showOnlyActive ? 'Only' : 'All'}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            ListTile(
-              title: const Text('Distance'),
-              subtitle: const Text('Within 5 km'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.pop(context);
-                // Show distance picker
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Reset to defaults
+                setState(() {
+                  _maxDistance = 10.0;
+                  _priceRange = const RangeValues(0, 100);
+                  _minRating = 3.0;
+                  _hasAvailableSpots = false;
+                  _showOnlyActive = true;
+                  // _selectedAmenities = [];
+                  _useAdvancedFilters = false;
+                });
               },
+              child: const Text('Reset'),
             ),
-            ListTile(
-              title: const Text('Rating'),
-              subtitle: const Text('4.0+ stars'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
                 Navigator.pop(context);
-                // Show rating picker
+                _applyAdvancedFilters();
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Apply Filters'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Apply filters
-            },
-            child: const Text('Apply'),
-          ),
-        ],
       ),
     );
   }

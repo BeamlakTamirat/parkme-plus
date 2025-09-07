@@ -15,6 +15,7 @@ import '../screens/booking/active_booking_screen.dart';
 
 import '../screens/payment/enhanced_payment_screen.dart';
 import '../screens/maps/maps_screen.dart';
+import '../screens/navigation/navigation_screen.dart';
 import '../screens/debug/database_debug_screen.dart';
 
 /// Comprehensive router provider
@@ -113,6 +114,16 @@ final comprehensiveRouterProvider = Provider<GoRouter>((ref) {
         path: '/maps',
         name: 'maps',
         builder: (context, state) => const MapsScreen(),
+      ),
+
+      // Navigation route
+      GoRoute(
+        path: '/navigation',
+        name: 'navigation',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return NavigationScreen(navigationData: extra);
+        },
       ),
 
       // Debug route (for development)
