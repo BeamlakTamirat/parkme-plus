@@ -3,10 +3,27 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
+/// Map Style definitions for WePark
+enum MapStyle {
+  streets('Streets', 'mapbox://styles/mapbox/streets-v12'),
+  satellite('Satellite', 'mapbox://styles/mapbox/satellite-v9'),
+  satelliteStreets(
+      'Satellite + Streets', 'mapbox://styles/mapbox/satellite-streets-v12'),
+  outdoors('Outdoors', 'mapbox://styles/mapbox/outdoors-v12'),
+  light('Light', 'mapbox://styles/mapbox/light-v11'),
+  dark('Dark', 'mapbox://styles/mapbox/dark-v11'),
+  navigationDay('Navigation Day', 'mapbox://styles/mapbox/navigation-day-v1'),
+  navigationNight(
+      'Navigation Night', 'mapbox://styles/mapbox/navigation-night-v1');
+
+  const MapStyle(this.displayName, this.styleUrl);
+  final String displayName;
+  final String styleUrl;
+}
 
 class MapboxConfig {
   static bool _isInitialized = false;
-
+  static MapStyle _currentMapStyle = MapStyle.streets;
 
   static String get accessToken {
     final token = dotenv.env['MAPBOX_ACCESS_TOKEN'];
@@ -26,11 +43,10 @@ class MapboxConfig {
       if (kDebugMode) {
         print('ℹ️ MAPBOX_SECRET_TOKEN not found in .env file (optional)');
       }
-      return null; 
+      return null;
     }
     return token;
   }
-
 
   static String get downloadsToken {
     final secretToken = dotenv.env['MAPBOX_SECRET_TOKEN'];
@@ -51,12 +67,27 @@ class MapboxConfig {
     return accessTokenFallback;
   }
 
-  /// Mapbox Map Style URL
+  /// Get current map style
+  static MapStyle get currentMapStyle => _currentMapStyle;
+
+  /// Set current map style
+  static void setMapStyle(MapStyle style) {
+    _currentMapStyle = style;
+    if (kDebugMode) {
+      print(
+          '🗺️ Map style changed to: ${style.displayName} (${style.styleUrl})');
+    }
+  }
+
+  /// Get all available map styles
+  static List<MapStyle> get availableMapStyles => MapStyle.values;
+
+  /// Mapbox Map Style URL (uses current selected style)
   static String get styleUrl {
     final styleUrl = dotenv.env['MAPBOX_STYLE_URL'];
     if (styleUrl == null || styleUrl.isEmpty) {
-      // Default to Mapbox Streets style
-      return 'mapbox://styles/mapbox/streets-v12';
+      // Default to current map style
+      return _currentMapStyle.styleUrl;
     }
     return styleUrl;
   }
@@ -100,7 +131,6 @@ class MapboxConfig {
 
     try {
       if (kDebugMode) print('🗺️ Initializing Mapbox Maps...');
-
 
       final token = accessToken;
       final style = styleUrl;

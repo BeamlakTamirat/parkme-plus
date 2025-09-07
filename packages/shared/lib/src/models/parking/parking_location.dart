@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
 
 /// Parking location model for WePark ecosystem
 class ParkingLocation {
@@ -19,7 +20,11 @@ class ParkingLocation {
   final DateTime updatedAt;
   final Map<String, dynamic>? metadata;
 
-  const ParkingLocation({
+  // Computed properties for filtering
+  double? _distanceFromUser; // Distance in kilometers
+  double? _rating; // Rating out of 5
+
+  ParkingLocation({
     required this.id,
     required this.name,
     required this.address,
@@ -147,6 +152,79 @@ class ParkingLocation {
 
   /// Get formatted hourly rate
   String get formattedHourlyRate => '${hourlyRate.toStringAsFixed(0)} ETB/hr';
+
+  /// Calculate distance from user location (Haversine formula)
+  double calculateDistance(double userLat, double userLng) {
+    const double earthRadius = 6371; // Earth's radius in kilometers
+
+    final double dLat = _toRadians(userLat - latitude);
+    final double dLng = _toRadians(userLng - longitude);
+
+    final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRadians(latitude)) *
+            math.cos(_toRadians(userLat)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    _distanceFromUser = earthRadius * c;
+
+    return _distanceFromUser!;
+  }
+
+  /// Get distance from user (calculate if not already calculated)
+  double? getDistanceFromUser(double userLat, double userLng) {
+    if (_distanceFromUser == null) {
+      calculateDistance(userLat, userLng);
+    }
+    return _distanceFromUser;
+  }
+
+  /// Get formatted distance string
+  String getFormattedDistance(double userLat, double userLng) {
+    final distance = getDistanceFromUser(userLat, userLng);
+    if (distance == null) return 'Distance unavailable';
+
+    if (distance < 1) {
+      return '${(distance * 1000).toStringAsFixed(0)}m';
+    } else {
+      return '${distance.toStringAsFixed(1)}km';
+    }
+  }
+
+  /// Get rating (from metadata or default)
+  double get rating {
+    if (_rating != null) return _rating!;
+
+    // Try to get rating from metadata
+    if (metadata != null && metadata!.containsKey('rating')) {
+      _rating = (metadata!['rating'] as num?)?.toDouble() ?? 4.0;
+    } else {
+      // Default rating based on available spots and hourly rate
+      final availabilityRatio =
+          totalSpots > 0 ? availableSpots / totalSpots : 0.0;
+      final rateScore =
+          hourlyRate <= 50 ? 1.0 : (hourlyRate <= 100 ? 0.5 : 0.0);
+      _rating = 3.0 + (availabilityRatio * 1.5) + (rateScore * 0.5);
+      _rating = _rating!.clamp(1.0, 5.0);
+    }
+
+    return _rating!;
+  }
+
+  /// Get formatted rating string
+  String get formattedRating => '${rating.toStringAsFixed(1)}★';
+
+  /// Get available spots percentage
+  double get availabilityPercentage {
+    if (totalSpots == 0) return 0.0;
+    return (availableSpots / totalSpots) * 100;
+  }
+
+  /// Helper method to convert degrees to radians
+  double _toRadians(double degrees) {
+    return degrees * math.pi / 180.0;
+  }
 
   @override
   String toString() {

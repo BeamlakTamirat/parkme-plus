@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
@@ -37,14 +38,14 @@ class MapboxService {
     return _instance!;
   }
 
-  /// Get current user location
+  /// Get current user location with multiple fallback strategies
   Future<Position?> getCurrentLocation() async {
     try {
       if (kDebugMode) {
         print('📍 Getting current location...');
       }
 
-      // Check permissions
+      // Check permissions first
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -59,15 +60,81 @@ class MapboxService {
         return null;
       }
 
-      // Get location
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
-      );
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (kDebugMode) print('❌ Location services are disabled');
+        return null;
+      }
 
-      if (kDebugMode) {
+      Position? position;
+
+      // Strategy 1: Try last known position first (fastest)
+      try {
+        position = await Geolocator.getLastKnownPosition(
+          forceAndroidLocationManager: false,
+        );
+        if (position != null && kDebugMode) {
+          print(
+              '✅ Using last known location: ${position.latitude}, ${position.longitude}');
+        }
+      } catch (e) {
+        if (kDebugMode) print('⚠️ Could not get last known position: $e');
+      }
+
+      // Strategy 2: Get current location with high accuracy
+      if (position == null) {
+        try {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 15),
+          );
+          if (kDebugMode) {
+            print(
+                '✅ High accuracy location: ${position.latitude}, ${position.longitude}');
+          }
+        } on TimeoutException {
+          if (kDebugMode)
+            print('⚠️ High accuracy timed out, trying medium accuracy...');
+        }
+      }
+
+      // Strategy 3: Fallback to medium accuracy with shorter timeout
+      if (position == null) {
+        try {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.medium,
+            timeLimit: const Duration(seconds: 10),
+          );
+          if (kDebugMode) {
+            print(
+                '✅ Medium accuracy location: ${position.latitude}, ${position.longitude}');
+          }
+        } on TimeoutException {
+          if (kDebugMode)
+            print('⚠️ Medium accuracy timed out, trying low accuracy...');
+        }
+      }
+
+      // Strategy 4: Final fallback to low accuracy
+      if (position == null) {
+        try {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.low,
+            timeLimit: const Duration(seconds: 5),
+          );
+          if (kDebugMode) {
+            print(
+                '✅ Low accuracy location: ${position.latitude}, ${position.longitude}');
+          }
+        } on TimeoutException {
+          if (kDebugMode) print('❌ All location strategies timed out');
+        }
+      }
+
+      if (position != null && kDebugMode) {
         print(
-            '✅ Current location: ${position.latitude}, ${position.longitude}');
+            '✅ Final location result: ${position.latitude}, ${position.longitude}');
       }
 
       return position;
@@ -283,6 +350,9 @@ class MapboxService {
       if (kDebugMode) {
         print(
             '🚗 Getting route from ($startLat, $startLng) to ($endLat, $endLng)');
+        print('🗺️ Using profile: $profile');
+        print(
+            '🔗 Mapbox access token exists: ${MapboxConfig.accessToken.isNotEmpty}');
       }
 
       final response = await _dio.get(
@@ -297,10 +367,21 @@ class MapboxService {
 
       if (response.statusCode == 200) {
         final data = response.data;
+        if (kDebugMode) {
+          print('📊 Response data keys: ${data.keys.toList()}');
+        }
+
         final routes = data['routes'] as List;
+        if (kDebugMode) {
+          print('🛣️ Number of routes found: ${routes.length}');
+        }
 
         if (routes.isNotEmpty) {
           final route = routes.first;
+          if (kDebugMode) {
+            print('📊 Route data keys: ${route.keys.toList()}');
+          }
+
           final duration = route['duration'] as double; // in seconds
           final distance = route['distance'] as double; // in meters
           final geometry = route['geometry'];
@@ -308,6 +389,13 @@ class MapboxService {
           if (kDebugMode) {
             print(
                 '✅ Route found: ${(distance / 1000).toStringAsFixed(1)}km, ${(duration / 60).toStringAsFixed(0)} mins');
+            if (geometry != null) {
+              final coords = geometry['coordinates'] as List?;
+              if (coords != null) {
+                print(
+                    '🗺️ Route geometry has ${coords.length} coordinate points');
+              }
+            }
           }
 
           return {
@@ -315,6 +403,12 @@ class MapboxService {
             'distance': distance,
             'geometry': geometry,
           };
+        }
+      } else {
+        if (kDebugMode) {
+          print(
+              '❌ Route API request failed with status: ${response.statusCode}');
+          print('📊 Response data: ${response.data}');
         }
       }
     } catch (e) {
