@@ -1441,7 +1441,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                             ? location.getFormattedDistance(
                                 _userLocation!.latitude,
                                 _userLocation!.longitude)
-                            : 'Distance unavailable',
+                            : '...km',
                         Colors.blue,
                       ),
                       const SizedBox(width: 8),
