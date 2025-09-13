@@ -177,14 +177,20 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
     // Determine action based on current status
     String newStatus;
     String actionMessage;
+    DateTime? newStartTime;
+    DateTime? newEndTime;
 
     switch (booking.status) {
       case 'pending':
         newStatus = 'active';
+        newStartTime = DateTime.now(); // Update start time to actual check-in time
+        newEndTime = booking.endTime; // Keep original planned end time
         actionMessage = 'Check-in successful! Vehicle can now park.';
         break;
       case 'active':
         newStatus = 'completed';
+        newStartTime = booking.startTime; // Keep original start time
+        newEndTime = DateTime.now(); // Update end time to actual check-out time
         actionMessage = 'Check-out successful! Parking session completed.';
         break;
       case 'completed':
@@ -195,16 +201,40 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
         _showErrorDialog(
             'Cancelled Booking', 'This booking has been cancelled.');
         return;
+      case 'expired':
+        _showErrorDialog(
+            'Expired Booking', 'This booking has expired and cannot be used.');
+        return;
       default:
         _showErrorDialog(
             'Invalid Status', 'Unknown booking status: ${booking.status}');
         return;
     }
 
-    // Update booking status
+    // Check if booking is overdue (past original end time) during check-in
+    if (newStatus == 'active' && booking.endTime != null) {
+      final now = DateTime.now();
+      if (now.isAfter(booking.endTime!)) {
+        // Show warning but allow check-in
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Warning: This booking was scheduled to end at ${booking.formattedEndTime}. '
+              'Additional charges may apply for overtime parking.',
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+
+    // Update booking with new times and status
     final updatedBooking = booking.copyWith(
       status: newStatus,
-      endTime: newStatus == 'completed' ? DateTime.now() : booking.endTime,
+      startTime: newStartTime,
+      endTime: newEndTime,
+      updatedAt: DateTime.now(),
     );
 
     final databaseService = ref.read(databaseServiceProvider);

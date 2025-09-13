@@ -16,8 +16,8 @@ class BookParkingScreen extends ConsumerStatefulWidget {
 
 class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
   String _selectedDate = 'Today';
-  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 2);
+  DateTime _startTime = DateTime.now().add(const Duration(hours: 1));
+  DateTime _endTime = DateTime.now().add(const Duration(hours: 3));
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +235,14 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                   const SizedBox(height: 8),
                   _buildTimeSelector(_startTime, (time) {
-                    setState(() => _startTime = time);
+                    setState(() {
+                      _startTime = time;
+                      // Ensure end time is after start time
+                      if (_endTime.isBefore(_startTime) ||
+                          _endTime.difference(_startTime).inMinutes < 30) {
+                        _endTime = _startTime.add(const Duration(hours: 2));
+                      }
+                    });
                   }),
                 ],
               ),
@@ -255,7 +262,19 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                   const SizedBox(height: 8),
                   _buildTimeSelector(_endTime, (time) {
-                    setState(() => _endTime = time);
+                    setState(() {
+                      if (time.isAfter(_startTime) &&
+                          time.difference(_startTime).inMinutes >= 30) {
+                        _endTime = time;
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('End time must be at least 30 minutes after start time'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    });
                   }),
                 ],
               ),
@@ -310,15 +329,30 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
     );
   }
 
-  Widget _buildTimeSelector(TimeOfDay time, Function(TimeOfDay) onTimeChanged) {
+  Widget _buildTimeSelector(DateTime dateTime, Function(DateTime) onTimeChanged) {
     return GestureDetector(
       onTap: () async {
-        final TimeOfDay? picked = await showTimePicker(
+        final date = await showDatePicker(
           context: context,
-          initialTime: time,
+          initialDate: dateTime,
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(const Duration(days: 30)),
         );
-        if (picked != null) {
-          onTimeChanged(picked);
+        if (date != null) {
+          final time = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(dateTime),
+          );
+          if (time != null) {
+            final newDateTime = DateTime(
+              date.year,
+              date.month,
+              date.day,
+              time.hour,
+              time.minute,
+            );
+            onTimeChanged(newDateTime);
+          }
         }
       },
       child: Container(
@@ -328,13 +362,19 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
           color: Colors.grey[100],
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          time.format(context),
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        child: Row(
+          children: [
+            const Icon(Icons.access_time, color: Colors.orange, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -432,9 +472,13 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
   }
 
   Widget _buildPricingSection() {
-    const parkingRate = 200;
+    // Calculate duration and pricing based on selected times
+    final duration = _endTime.difference(_startTime);
+    final durationHours = duration.inMinutes / 60.0;
+    const hourlyRate = 25.0; // ETB per hour - this should come from location data
+    final parkingCost = hourlyRate * durationHours;
     const serviceFee = 15;
-    const totalAmount = parkingRate + serviceFee;
+    final totalAmount = parkingCost + serviceFee;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,21 +498,21 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Column(
+          child: Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Parking Rate (8 hours)',
-                    style: TextStyle(
+                    'Duration: ${durationHours.toStringAsFixed(1)} hours',
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.black87,
                     ),
                   ),
                   Text(
-                    '$parkingRate ETB',
-                    style: TextStyle(
+                    '${parkingCost.toStringAsFixed(0)} ETB',
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
@@ -476,8 +520,8 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 12),
-              Row(
+              const SizedBox(height: 12),
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
@@ -497,13 +541,13 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 16),
-              Divider(height: 1),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  const Text(
                     'Total Amount',
                     style: TextStyle(
                       fontSize: 16,
@@ -512,8 +556,8 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
                     ),
                   ),
                   Text(
-                    '$totalAmount ETB',
-                    style: TextStyle(
+                    '${totalAmount.toStringAsFixed(0)} ETB',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.orange,
@@ -547,12 +591,19 @@ class _BookParkingScreenState extends ConsumerState<BookParkingScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
+              // Calculate final booking data
+              final duration = _endTime.difference(_startTime);
+              final durationHours = duration.inMinutes / 60.0;
+              const hourlyRate = 25.0;
+              final totalAmount = (hourlyRate * durationHours) + 15; // Including service fee
+
               context.push('/payment', extra: {
-                'amount': 215,
-                'location':
-                    widget.locationData?['name'] ?? 'Meskel Square Parking',
-                'duration': '8 hours',
-                'time': 'Today 9:00 AM - 5:00 PM',
+                'amount': totalAmount,
+                'location': widget.locationData?['name'] ?? 'Meskel Square Parking',
+                'duration': '${durationHours.toStringAsFixed(1)} hours',
+                'startTime': _startTime,
+                'endTime': _endTime,
+                'time': '${_startTime.day}/${_startTime.month}/${_startTime.year} ${_startTime.hour}:${_startTime.minute.toString().padLeft(2, '0')} - ${_endTime.hour}:${_endTime.minute.toString().padLeft(2, '0')}',
               });
             },
             style: ElevatedButton.styleFrom(

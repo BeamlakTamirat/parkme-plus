@@ -1856,112 +1856,230 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       return;
     }
 
-    int selectedDuration = 2; // Default 2 hours
+    // Default to current time + 1 hour for start, + 3 hours for end
+    DateTime selectedStartTime = DateTime.now().add(const Duration(hours: 1));
+    DateTime selectedEndTime = DateTime.now().add(const Duration(hours: 3));
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Book Parking Spot'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Location: ${location.name}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Text('Rate: ${location.formattedHourlyRate}'),
-              const SizedBox(height: 8),
-              Text('Available spots: ${location.availableSpots}'),
-              const SizedBox(height: 16),
+        builder: (context, setState) {
+          // Calculate duration and cost
+          final duration = selectedEndTime.difference(selectedStartTime);
+          final durationHours = duration.inMinutes / 60.0;
+          final totalCost = location.hourlyRate * durationHours;
 
-              // 🔧 FIX: Add duration selection
-              const Text(
-                'Duration:',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [1, 2, 3, 4, 6, 8, 12, 24].map((hours) {
-                  return ChoiceChip(
-                    label: Text('${hours}h'),
-                    selected: selectedDuration == hours,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          selectedDuration = hours;
-                        });
+          return AlertDialog(
+            title: const Text('Book Parking Spot'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Location: ${location.name}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Rate: ${location.formattedHourlyRate}'),
+                  const SizedBox(height: 8),
+                  Text('Available spots: ${location.availableSpots}'),
+                  const SizedBox(height: 16),
+
+                  // Start Time Selection
+                  const Text(
+                    'Start Time:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: selectedStartTime,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                      );
+                      if (date != null) {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedStartTime),
+                        );
+                        if (time != null) {
+                          setState(() {
+                            selectedStartTime = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
+                            // Ensure end time is after start time
+                            if (selectedEndTime.isBefore(selectedStartTime) ||
+                                selectedEndTime.difference(selectedStartTime).inMinutes < 30) {
+                              selectedEndTime = selectedStartTime.add(const Duration(hours: 2));
+                            }
+                          });
+                        }
                       }
                     },
-                    selectedColor: Colors.orange.withOpacity(0.2),
-                    labelStyle: TextStyle(
-                      color: selectedDuration == hours
-                          ? Colors.orange[700]
-                          : Colors.grey[700],
-                      fontWeight: selectedDuration == hours
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-
-              //  Dynamic total calculation
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total Cost:',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      CurrencyFormatter.format(
-                          location.hourlyRate * selectedDuration),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${selectedStartTime.day}/${selectedStartTime.month}/${selectedStartTime.year} ${selectedStartTime.hour}:${selectedStartTime.minute.toString().padLeft(2, '0')}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // End Time Selection
+                  const Text(
+                    'End Time:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: selectedEndTime,
+                        firstDate: selectedStartTime,
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                      );
+                      if (date != null) {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedEndTime),
+                        );
+                        if (time != null) {
+                          final newEndTime = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            time.hour,
+                            time.minute,
+                          );
+                          // Validate end time is after start time
+                          if (newEndTime.isAfter(selectedStartTime) &&
+                              newEndTime.difference(selectedStartTime).inMinutes >= 30) {
+                            setState(() {
+                              selectedEndTime = newEndTime;
+                            });
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('End time must be at least 30 minutes after start time'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time_filled, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${selectedEndTime.day}/${selectedEndTime.month}/${selectedEndTime.year} ${selectedEndTime.hour}:${selectedEndTime.minute.toString().padLeft(2, '0')}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Duration and Cost Display
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Duration:',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              '${durationHours.toStringAsFixed(1)} hours',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Total Cost:',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              CurrencyFormatter.format(totalCost),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _proceedToPayment(context, location, selectedStartTime, selectedEndTime);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
                 ),
+                child: const Text('Continue to Payment'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _proceedToPayment(context, location, selectedDuration);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Continue to Payment'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
   void _proceedToPayment(
-      BuildContext context, ParkingLocation location, int durationHours) async {
+      BuildContext context, ParkingLocation location, DateTime startTime, DateTime endTime) async {
     // Get current user
     final currentUser = await ref.read(currentUserProvider.future);
     if (currentUser == null) {
@@ -1977,20 +2095,21 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
       return;
     }
 
-    // 🔧 FIX: Use dynamic duration and amount calculation
+    // Calculate duration and total amount based on actual start/end times
+    final duration = endTime.difference(startTime);
+    final durationHours = duration.inMinutes / 60.0;
+    final totalAmount = location.hourlyRate * durationHours;
+
     final bookingData = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'parkingLocationId': location.id,
       'parkingLocationName': location.name,
       'userId': currentUser.id,
       'vehiclePlateNumber': currentUser.vehiclePlateNumber ?? 'N/A',
-      'totalAmount':
-          location.hourlyRate * durationHours, // 🔧 FIX: Dynamic calculation
-      'duration':
-          '$durationHours hour${durationHours == 1 ? '' : 's'}', // 🔧 FIX: Dynamic duration text
-      'startTime': DateTime.now(),
-      'endTime': DateTime.now()
-          .add(Duration(hours: durationHours)), // 🔧 FIX: Dynamic end time
+      'totalAmount': totalAmount,
+      'duration': '${durationHours.toStringAsFixed(1)} hours',
+      'startTime': startTime,
+      'endTime': endTime,
     };
 
     // Navigate to payment screen
