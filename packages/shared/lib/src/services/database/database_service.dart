@@ -444,6 +444,83 @@ class DatabaseService {
     }
   }
 
+  /// Check and expire bookings that have passed their end time without check-in/out
+  Future<List<Booking>> expireOverdueBookings() async {
+    try {
+      if (kDebugMode) print('🕐 Checking for overdue bookings...');
+
+      final response = await _databases.listDocuments(
+        databaseId: _databaseId,
+        collectionId: _bookingsCollectionId,
+        queries: [
+          Query.notEqual('status', 'completed'),
+          Query.notEqual('status', 'cancelled'),
+          Query.notEqual('status', 'expired'),
+        ],
+      );
+
+      final now = DateTime.now();
+      final expiredBookings = <Booking>[];
+
+      for (final doc in response.documents) {
+        final booking = Booking.fromDocument(doc.data);
+        
+        // Check if booking has passed its end time
+        if (booking.endTime != null && now.isAfter(booking.endTime!)) {
+          // Only expire if not checked in or if checked in but past end time
+          if (booking.status == 'pending' || 
+              (booking.status == 'active' && now.isAfter(booking.endTime!))) {
+            
+            final expiredBooking = booking.copyWith(
+              status: 'expired',
+              updatedAt: now,
+            );
+
+            final success = await updateBooking(expiredBooking);
+            if (success) {
+              expiredBookings.add(expiredBooking);
+              if (kDebugMode) {
+                print('⏰ Expired booking: ${booking.id} (${booking.vehiclePlateNumber})');
+              }
+            }
+          }
+        }
+      }
+
+      if (kDebugMode) {
+        print('✅ Expired ${expiredBookings.length} overdue bookings');
+      }
+
+      return expiredBookings;
+    } catch (e) {
+      if (kDebugMode) print('❌ Error expiring overdue bookings: $e');
+      return [];
+    }
+  }
+
+  /// Get booking by QR code
+  Future<Booking?> getBookingByQRCode(String qrCode) async {
+    try {
+      // Extract booking ID from QR code format: "booking:{bookingId}"
+      if (!qrCode.startsWith('booking:')) {
+        if (kDebugMode) print('❌ Invalid QR code format: $qrCode');
+        return null;
+      }
+
+      final bookingId = qrCode.substring(8);
+      final bookingData = await getBooking(bookingId);
+      
+      if (bookingData != null) {
+        return Booking.fromDocument(bookingData);
+      }
+      
+      return null;
+    } catch (e) {
+      if (kDebugMode) print('❌ Error getting booking by QR code: $e');
+      return null;
+    }
+  }
+
   // ==================== UTILITY METHODS ====================
 
   /// Generate unique ID

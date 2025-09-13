@@ -714,7 +714,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
         title: const Row(
           children: [
             Icon(Icons.check_circle, color: Colors.green, size: 28),
-            SizedBox(width: 12),
+            SizedBox(width: 6),
             Text('Booking Confirmed!'),
           ],
         ),
@@ -724,7 +724,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Your parking spot has been successfully booked and payment confirmed.',
+                'Parking: booked & \npayment: confirmed.',
                 style: TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 20),
@@ -855,17 +855,6 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
               context.go('/home');
             },
             child: const Text('Go to Home'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              context.go('/history'); // Go directly to booking history
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('View All Bookings'),
           ),
         ],
       ),

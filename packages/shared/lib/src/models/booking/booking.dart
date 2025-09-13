@@ -192,6 +192,16 @@ class Booking {
   /// Check if booking is cancelled
   bool get isCancelled => status == 'cancelled';
 
+  /// Check if booking is expired
+  bool get isExpired => status == 'expired';
+
+  /// Check if booking is overdue (past end time but not completed)
+  bool get isOverdue {
+    if (endTime == null) return false;
+    final now = DateTime.now();
+    return now.isAfter(endTime!) && !isCompleted && !isExpired;
+  }
+
   /// Check if payment is completed
   bool get isPaid => paymentStatus == 'paid';
 

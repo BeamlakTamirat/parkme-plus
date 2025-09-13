@@ -161,8 +161,6 @@ class ProfileScreen extends ConsumerWidget {
                           const Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              _StatCard(title: 'Bookings', value: '0'),
-                              _StatCard(title: 'Rating', value: '5.0'),
                             ],
                           ),
                         ],
