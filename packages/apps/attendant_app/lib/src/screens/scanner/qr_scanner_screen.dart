@@ -183,7 +183,8 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
     switch (booking.status) {
       case 'pending':
         newStatus = 'active';
-        newStartTime = DateTime.now(); // Update start time to actual check-in time
+        newStartTime =
+            DateTime.now(); // Update start time to actual check-in time
         newEndTime = booking.endTime; // Keep original planned end time
         actionMessage = 'Check-in successful! Vehicle can now park.';
         break;

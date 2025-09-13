@@ -687,6 +687,10 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   Expanded(
                     child: TextField(
                       controller: _searchController,
+                      onChanged: (query) {
+                        // Trigger search when user types
+                        _applyFilterAndSorting();
+                      },
                       decoration: InputDecoration(
                         hintText: 'Search location...',
                         hintStyle: TextStyle(
@@ -694,6 +698,16 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                           fontSize: 10,
                         ),
                         border: InputBorder.none,
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear,
+                                    size: 16, color: Colors.grey[500]),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _applyFilterAndSorting();
+                                },
+                              )
+                            : null,
                       ),
                     ),
                   ),
@@ -988,6 +1002,29 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
     try {
       final allLocations = await ref.read(parkingLocationsProvider.future);
       List<ParkingLocation> filteredLocations = List.from(allLocations);
+
+      //  SEARCH FUNCTIONALITY: Apply text search filter first
+      final searchQuery = _searchController.text.trim().toLowerCase();
+      if (searchQuery.isNotEmpty) {
+        filteredLocations = filteredLocations.where((location) {
+          final nameMatch = location.name.toLowerCase().contains(searchQuery);
+          final addressMatch =
+              location.address.toLowerCase().contains(searchQuery);
+          final descriptionMatch =
+              location.description?.toLowerCase().contains(searchQuery) ??
+                  false;
+
+          // Also search in amenities if available
+          final amenitiesMatch = location.amenities?.any(
+                  (amenity) => amenity.toLowerCase().contains(searchQuery)) ??
+              false;
+
+          return nameMatch ||
+              addressMatch ||
+              descriptionMatch ||
+              amenitiesMatch;
+        }).toList();
+      }
 
       // Apply user location-based filtering if needed
       if (_userLocation != null) {
@@ -1903,7 +1940,8 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                       if (date != null) {
                         final time = await showTimePicker(
                           context: context,
-                          initialTime: TimeOfDay.fromDateTime(selectedStartTime),
+                          initialTime:
+                              TimeOfDay.fromDateTime(selectedStartTime),
                         );
                         if (time != null) {
                           setState(() {
@@ -1916,8 +1954,12 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                             );
                             // Ensure end time is after start time
                             if (selectedEndTime.isBefore(selectedStartTime) ||
-                                selectedEndTime.difference(selectedStartTime).inMinutes < 30) {
-                              selectedEndTime = selectedStartTime.add(const Duration(hours: 2));
+                                selectedEndTime
+                                        .difference(selectedStartTime)
+                                        .inMinutes <
+                                    30) {
+                              selectedEndTime = selectedStartTime
+                                  .add(const Duration(hours: 2));
                             }
                           });
                         }
@@ -1973,14 +2015,18 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                           );
                           // Validate end time is after start time
                           if (newEndTime.isAfter(selectedStartTime) &&
-                              newEndTime.difference(selectedStartTime).inMinutes >= 30) {
+                              newEndTime
+                                      .difference(selectedStartTime)
+                                      .inMinutes >=
+                                  30) {
                             setState(() {
                               selectedEndTime = newEndTime;
                             });
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('End time must be at least 30 minutes after start time'),
+                                content: Text(
+                                    'End time must be at least 30 minutes after start time'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -1997,7 +2043,8 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.access_time_filled, color: Colors.orange),
+                          const Icon(Icons.access_time_filled,
+                              color: Colors.orange),
                           const SizedBox(width: 8),
                           Text(
                             '${selectedEndTime.day}/${selectedEndTime.month}/${selectedEndTime.year} ${selectedEndTime.hour}:${selectedEndTime.minute.toString().padLeft(2, '0')}',
@@ -2027,7 +2074,8 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                             ),
                             Text(
                               '${durationHours.toStringAsFixed(1)} hours',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -2063,7 +2111,8 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  _proceedToPayment(context, location, selectedStartTime, selectedEndTime);
+                  _proceedToPayment(
+                      context, location, selectedStartTime, selectedEndTime);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
@@ -2078,8 +2127,8 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
     );
   }
 
-  void _proceedToPayment(
-      BuildContext context, ParkingLocation location, DateTime startTime, DateTime endTime) async {
+  void _proceedToPayment(BuildContext context, ParkingLocation location,
+      DateTime startTime, DateTime endTime) async {
     // Get current user
     final currentUser = await ref.read(currentUserProvider.future);
     if (currentUser == null) {

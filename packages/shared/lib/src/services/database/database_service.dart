@@ -464,13 +464,12 @@ class DatabaseService {
 
       for (final doc in response.documents) {
         final booking = Booking.fromDocument(doc.data);
-        
+
         // Check if booking has passed its end time
         if (booking.endTime != null && now.isAfter(booking.endTime!)) {
           // Only expire if not checked in or if checked in but past end time
-          if (booking.status == 'pending' || 
+          if (booking.status == 'pending' ||
               (booking.status == 'active' && now.isAfter(booking.endTime!))) {
-            
             final expiredBooking = booking.copyWith(
               status: 'expired',
               updatedAt: now,
@@ -480,7 +479,8 @@ class DatabaseService {
             if (success) {
               expiredBookings.add(expiredBooking);
               if (kDebugMode) {
-                print('⏰ Expired booking: ${booking.id} (${booking.vehiclePlateNumber})');
+                print(
+                    '⏰ Expired booking: ${booking.id} (${booking.vehiclePlateNumber})');
               }
             }
           }
@@ -509,11 +509,11 @@ class DatabaseService {
 
       final bookingId = qrCode.substring(8);
       final bookingData = await getBooking(bookingId);
-      
+
       if (bookingData != null) {
         return Booking.fromDocument(bookingData);
       }
-      
+
       return null;
     } catch (e) {
       if (kDebugMode) print('❌ Error getting booking by QR code: $e');
