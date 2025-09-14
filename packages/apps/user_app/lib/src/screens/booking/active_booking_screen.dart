@@ -135,8 +135,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
       final bookingData = {
         'userId': currentUser.id,
         'parkingLocationId': location.id,
-        'spotNumber':
-            'A${DateTime.now().millisecondsSinceEpoch % 100}', // Generate spot number
+        //  Remove broken spot generation - DatabaseService will handle proper allocation
         'vehiclePlateNumber': currentUser.vehiclePlateNumber ?? 'UNKNOWN',
         'vehicleModel': currentUser.vehicleModel,
         'vehicleColor': currentUser.vehicleColor,

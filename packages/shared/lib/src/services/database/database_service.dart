@@ -277,8 +277,9 @@ class DatabaseService {
 
       // Generate unique ID for the booking
       final bookingId = bookingData['id'] ?? ID.unique();
-      final spotNumber =
-          'A${DateTime.now().millisecondsSinceEpoch % 100}'; // Generate spot number
+      
+      //  Generate proper spot number using attendant app logic
+      final spotNumber = await _generateAvailableSpotNumber(bookingData['parkingLocationId']);
 
       // Handle DateTime conversion properly
       DateTime startTime = DateTime.now();
@@ -388,7 +389,61 @@ class DatabaseService {
     }
   }
 
-  /// Get user's bookings
+  /// Generate available spot number using proper A1-A20, B1-B20, C1-C20 system
+  Future<String> _generateAvailableSpotNumber(String locationId) async {
+    try {
+      // Get all active bookings for this location
+      final response = await _databases.listDocuments(
+        databaseId: _databaseId,
+        collectionId: _bookingsCollectionId,
+        queries: [
+          Query.equal('parkingLocationId', locationId),
+          Query.equal('status', ['pending', 'active']), // Only check occupied spots
+        ],
+      );
+
+      // Get occupied spot numbers
+      final occupiedSpots = response.documents
+          .map((doc) => doc.data['spotNumber'] as String?)
+          .where((spot) => spot != null)
+          .cast<String>()
+          .toSet();
+
+      if (kDebugMode) {
+        print(' Occupied spots for location $locationId: $occupiedSpots');
+      }
+
+      // Generate spot numbers in proper sequence: A1-A20, B1-B20, C1-C20, etc.
+      for (int index = 1; index <= 200; index++) { // Support up to 200 spots (10 sections)
+        final letter = String.fromCharCode(65 + ((index - 1) ~/ 20)); // A, B, C...
+        final number = ((index - 1) % 20) + 1; // 1-20
+        final spotNumber = '$letter$number';
+
+        if (!occupiedSpots.contains(spotNumber)) {
+          if (kDebugMode) {
+            print(' Assigned available spot: $spotNumber');
+          }
+          return spotNumber;
+        }
+      }
+
+      // Fallback if all spots are occupied (shouldn't happen with 200 spots)
+      final fallbackSpot = 'Z${DateTime.now().millisecondsSinceEpoch % 100}';
+      if (kDebugMode) {
+        print(' All spots occupied, using fallback: $fallbackSpot');
+      }
+      return fallbackSpot;
+
+    } catch (e) {
+      if (kDebugMode) {
+        print(' Error generating spot number: $e');
+      }
+      // Fallback to A1 if there's an error
+      return 'A1';
+    }
+  }
+
+  /// Get all bookings for a specific user
   Future<List<Booking>> getUserBookings(String userId) async {
     try {
       final response = await _databases.listDocuments(
