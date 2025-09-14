@@ -17,11 +17,9 @@ class ParkingHistoryScreen extends ConsumerStatefulWidget {
 class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
   Map<String, String> _locationNames = {};
 
-  // Filter state management
+  // Filter state management - FIXED for real-time updates
   String _selectedFilter =
       'all'; // 'all', 'active', 'pending', 'completed', 'cancelled'
-  List<Booking> _originalBookings = []; // Store original unfiltered bookings
-  List<Booking> _filteredBookings = []; // Store filtered bookings
   bool _isFiltering = false;
 
   @override
@@ -48,71 +46,59 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
     return _locationNames[locationId] ?? 'Unknown Location';
   }
 
-  ///  Apply filtering based on selected filter criteria
+  /// ✅ Apply filtering based on selected filter criteria - REAL-TIME COMPATIBLE
   void _applyFilter() {
-    if (_originalBookings.isEmpty) return;
-
     setState(() {
       _isFiltering = true;
     });
 
-    List<Booking> filteredBookings;
-
-    switch (_selectedFilter) {
-      case 'all':
-        filteredBookings = List.from(_originalBookings);
-        break;
-
-      case 'active':
-        filteredBookings = _originalBookings
-            .where((booking) => booking.status.toLowerCase() == 'active')
-            .toList();
-        break;
-
-      case 'pending':
-        filteredBookings = _originalBookings
-            .where((booking) => booking.status.toLowerCase() == 'pending')
-            .toList();
-        break;
-
-      case 'completed':
-        filteredBookings = _originalBookings
-            .where((booking) => booking.status.toLowerCase() == 'completed')
-            .toList();
-        break;
-
-      case 'cancelled':
-        filteredBookings = _originalBookings
-            .where((booking) => booking.status.toLowerCase() == 'cancelled')
-            .toList();
-        break;
-
-      default:
-        filteredBookings = List.from(_originalBookings);
-    }
-
-    setState(() {
-      _filteredBookings = filteredBookings;
-      _isFiltering = false;
+    // Just update the filter - the UI will automatically filter the live stream
+    Future.delayed(const Duration(milliseconds: 100), () {
+      setState(() {
+        _isFiltering = false;
+      });
     });
 
     if (kDebugMode) {
-      print(' Applied booking filter: $_selectedFilter');
-      print('   Original bookings: ${_originalBookings.length}');
-      print('   Filtered bookings: ${filteredBookings.length}');
+      print('✅ Applied booking filter: $_selectedFilter (real-time)');
     }
   }
 
-  /// 🔄 Reset filter to show all bookings
+  /// 🔄 Reset filter to show all bookings - REAL-TIME COMPATIBLE
   void _resetFilter() {
     setState(() {
       _selectedFilter = 'all';
-      _filteredBookings = List.from(_originalBookings);
       _isFiltering = false;
     });
 
     if (kDebugMode) {
-      print('🔄 Reset booking filter to show all bookings');
+      print('🔄 Reset booking filter to show all bookings (real-time)');
+    }
+  }
+
+  ///  Filter bookings in real-time from live stream
+  List<Booking> _filterBookingsRealTime(List<Booking> liveBookings) {
+    switch (_selectedFilter) {
+      case 'all':
+        return liveBookings;
+      case 'active':
+        return liveBookings
+            .where((booking) => booking.status.toLowerCase() == 'active')
+            .toList();
+      case 'pending':
+        return liveBookings
+            .where((booking) => booking.status.toLowerCase() == 'pending')
+            .toList();
+      case 'completed':
+        return liveBookings
+            .where((booking) => booking.status.toLowerCase() == 'completed')
+            .toList();
+      case 'cancelled':
+        return liveBookings
+            .where((booking) => booking.status.toLowerCase() == 'cancelled')
+            .toList();
+      default:
+        return liveBookings;
     }
   }
 
@@ -194,22 +180,15 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                 Text('Error: $error'),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => ref.refresh(bookingHistoryProvider),
+                  onPressed: () => ref.invalidate(bookingHistoryProvider),
                   child: const Text('Retry'),
                 ),
               ],
             ),
           ),
           data: (bookings) {
-            // Store original bookings for filtering
-            if (_originalBookings.isEmpty && bookings.isNotEmpty) {
-              _originalBookings = List.from(bookings);
-              _filteredBookings = List.from(bookings);
-            }
-
-            // Use filtered bookings if available, otherwise use all bookings
-            final displayBookings =
-                _filteredBookings.isNotEmpty ? _filteredBookings : bookings;
+            //  REAL-TIME FILTERING: Apply filter to live stream data
+            final displayBookings = _filterBookingsRealTime(bookings);
 
             if (displayBookings.isEmpty) {
               String emptyMessage = 'No booking history';
@@ -401,6 +380,21 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
         return Colors.red;
       default:
         return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return Icons.local_parking;
+      case 'pending':
+        return Icons.schedule;
+      case 'completed':
+        return Icons.check_circle;
+      case 'cancelled':
+        return Icons.cancel;
+      default:
+        return Icons.info;
     }
   }
 
@@ -624,10 +618,11 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with location and status
+            // Header with location and status badge
             Row(
               children: [
                 Expanded(
+                  flex: 3,
                   child: Text(
                     location,
                     style: const TextStyle(
@@ -637,61 +632,40 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     ),
                   ),
                 ),
+                // Status Badge - This was missing!
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
                   ),
-                  child: Text(
-                    status.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _getStatusIcon(status),
+                        size: 14,
+                        color: statusColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Details
-            Row(
-              children: [
-                Icon(
-                  Icons.local_parking,
-                  size: 16,
-                  color: Colors.grey[500],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  space,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Icon(
-                  Icons.directions_car,
-                  size: 16,
-                  color: Colors.grey[500],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  vehicle,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Date and time
+            // Date and Time Row - Clean layout
             Row(
               children: [
                 Icon(
@@ -699,30 +673,29 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                   size: 16,
                   color: Colors.grey[500],
                 ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    date,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 6),
+                Text(
+                  date,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 20),
                 Icon(
                   Icons.access_time,
                   size: 16,
                   color: Colors.grey[500],
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     time,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -731,35 +704,104 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
             ),
             const SizedBox(height: 8),
 
-            // Duration and cost
+            // Vehicle and Space Info
             Row(
               children: [
                 Icon(
-                  Icons.timer,
+                  Icons.directions_car,
                   size: 16,
                   color: Colors.grey[500],
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Text(
-                  duration,
+                  vehicle,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 95),
                 Icon(
-                  Icons.payment,
+                  Icons.local_parking,
                   size: 16,
                   color: Colors.grey[500],
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Text(
-                  cost,
-                  style: const TextStyle(
+                  'Space $space',
+                  style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.orange,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Duration and cost with better styling
+            Row(
+              children: [
+                // Duration section
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.timer,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          duration,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Cost section
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.payment,
+                          size: 16,
+                          color: Colors.orange[600],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          cost,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange[700],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -779,7 +821,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     childAspectRatio:
-                        2.5, // Make buttons wider but not too tall
+                        3.2, // Make buttons wider but not too tall
                     children: [
                       // Primary action button - Book Again/Manage
                       _buildCompactButton(
@@ -829,20 +871,31 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     ],
                   ),
                 ] else ...[
-                  // Standard 2-button layout for other bookings
+                  // Standard 2-button layout for other bookings - Enhanced styling
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton(
+                        child: ElevatedButton.icon(
                           onPressed: onPrimaryAction,
+                          icon: Icon(
+                            primaryAction == 'Book Again'
+                                ? Icons.refresh
+                                : Icons.manage_accounts,
+                            size: 18,
+                          ),
+                          label: Text(
+                            primaryAction,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryActionColor,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                             ),
+                            elevation: 2,
                           ),
-                          child: Text(primaryAction),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -854,21 +907,26 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                                 ? Icons.navigation
                                 : secondaryAction == 'Show QR Code'
                                     ? Icons.qr_code
-                                    : Icons.info,
-                            size: 16,
+                                    : Icons.info_outline,
+                            size: 18,
                           ),
-                          label: Text(secondaryAction),
+                          label: Text(
+                            secondaryAction,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
                               color: secondaryAction == 'Navigate'
                                   ? Colors.green
-                                  : Colors.grey[300]!,
+                                  : Colors.grey[400]!,
+                              width: 1.5,
                             ),
                             foregroundColor: secondaryAction == 'Navigate'
                                 ? Colors.green
                                 : Colors.grey[700],
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
@@ -1118,8 +1176,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
               ),
             );
 
-            // Refresh the booking list
-            ref.invalidate(bookingHistoryProvider);
+            // ✅ REAL-TIME: No manual refresh needed - stream updates automatically
           }
         } else {
           if (context.mounted) {
@@ -1171,28 +1228,11 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
-              const Text('Filter Bookings'),
-              const Spacer(),
-              if (_selectedFilter != 'all') ...[
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${_filteredBookings.length} found',
-                    style: const TextStyle(
-                      color: Colors.blue,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+              Text('Filter Bookings'),
+              Spacer(),
+              Icon(Icons.filter_list, color: Colors.blue),
             ],
           ),
           content: Container(

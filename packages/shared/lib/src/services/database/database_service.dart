@@ -1,5 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../../config/appwrite_config.dart';
 import '../../models/user/user.dart';
 import '../../models/parking/parking_location.dart';
@@ -9,9 +10,18 @@ import '../../models/booking/booking.dart';
 class DatabaseService {
   static DatabaseService? _instance;
   late final Databases _databases;
+  late final Realtime _realtime;
+  
+  // Stream controllers for real-time updates
+  final Map<String, StreamController<Booking>> _bookingStreamControllers = {};
+  final StreamController<List<Booking>> _userBookingsStreamController = 
+      StreamController<List<Booking>>.broadcast();
+  
+  RealtimeSubscription? _userBookingsSubscription;
 
   DatabaseService._() {
     _databases = AppwriteConfig.databases;
+    _realtime = Realtime(AppwriteConfig.client);
   }
 
   static DatabaseService get instance {
@@ -540,5 +550,134 @@ class DatabaseService {
       if (kDebugMode) print('❌ Database connection error: $e');
       return false;
     }
+  }
+
+  // ==================== REAL-TIME SUBSCRIPTION METHODS ====================
+
+  /// Subscribe to real-time updates for a specific user's bookings
+  Stream<List<Booking>> subscribeToUserBookings(String userId) {
+    if (kDebugMode) print('🔔 Subscribing to real-time booking updates for user: $userId');
+    
+    // Cancel existing subscription if any
+    _userBookingsSubscription?.close();
+    
+    // Create subscription for the bookings collection with user filter
+    _userBookingsSubscription = _realtime.subscribe([
+      'databases.$_databaseId.collections.$_bookingsCollectionId.documents'
+    ]);
+    
+    _userBookingsSubscription!.stream.listen(
+      (response) async {
+        if (kDebugMode) print('📡 Real-time booking update received: ${response.events}');
+        
+        try {
+          // Fetch updated user bookings and emit to stream
+          final updatedBookings = await getUserBookings(userId);
+          _userBookingsStreamController.add(updatedBookings);
+          
+          if (kDebugMode) {
+            print('✅ Emitted ${updatedBookings.length} updated bookings to stream');
+          }
+        } catch (e) {
+          if (kDebugMode) print('❌ Error processing real-time booking update: $e');
+          _userBookingsStreamController.addError(e);
+        }
+      },
+      onError: (error) {
+        if (kDebugMode) print('❌ Real-time subscription error: $error');
+        _userBookingsStreamController.addError(error);
+      },
+    );
+    
+    // Initial data fetch
+    getUserBookings(userId).then((bookings) {
+      _userBookingsStreamController.add(bookings);
+    }).catchError((error) {
+      _userBookingsStreamController.addError(error);
+    });
+    
+    return _userBookingsStreamController.stream;
+  }
+
+  /// Subscribe to real-time updates for a specific booking
+  Stream<Booking> subscribeToBooking(String bookingId) {
+    if (kDebugMode) print('🔔 Subscribing to real-time updates for booking: $bookingId');
+    
+    // Create or get existing stream controller for this booking
+    if (!_bookingStreamControllers.containsKey(bookingId)) {
+      _bookingStreamControllers[bookingId] = StreamController<Booking>.broadcast();
+    }
+    
+    final streamController = _bookingStreamControllers[bookingId]!;
+    
+    // Create subscription for the specific booking document
+    final subscription = _realtime.subscribe([
+      'databases.$_databaseId.collections.$_bookingsCollectionId.documents.$bookingId'
+    ]);
+    
+    subscription.stream.listen(
+      (response) async {
+        if (kDebugMode) print('📡 Real-time update for booking $bookingId: ${response.events}');
+        
+        try {
+          // Fetch updated booking data
+          final bookingData = await getBooking(bookingId);
+          if (bookingData != null) {
+            final updatedBooking = Booking.fromDocument(bookingData);
+            streamController.add(updatedBooking);
+            
+            if (kDebugMode) {
+              print('✅ Emitted updated booking status: ${updatedBooking.status}');
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) print('❌ Error processing real-time booking update: $e');
+          streamController.addError(e);
+        }
+      },
+      onError: (error) {
+        if (kDebugMode) print('❌ Real-time subscription error for booking $bookingId: $error');
+        streamController.addError(error);
+      },
+    );
+    
+    // Initial data fetch
+    getBooking(bookingId).then((bookingData) {
+      if (bookingData != null) {
+        final booking = Booking.fromDocument(bookingData);
+        streamController.add(booking);
+      }
+    }).catchError((error) {
+      streamController.addError(error);
+    });
+    
+    return streamController.stream;
+  }
+
+  /// Unsubscribe from user bookings updates
+  void unsubscribeFromUserBookings() {
+    if (kDebugMode) print('🔕 Unsubscribing from user bookings updates');
+    _userBookingsSubscription?.close();
+    _userBookingsSubscription = null;
+  }
+
+  /// Unsubscribe from a specific booking updates
+  void unsubscribeFromBooking(String bookingId) {
+    if (kDebugMode) print('🔕 Unsubscribing from booking updates: $bookingId');
+    _bookingStreamControllers[bookingId]?.close();
+    _bookingStreamControllers.remove(bookingId);
+  }
+
+  /// Clean up all real-time subscriptions
+  void dispose() {
+    if (kDebugMode) print('🧹 Disposing database service and cleaning up subscriptions');
+    
+    _userBookingsSubscription?.close();
+    _userBookingsStreamController.close();
+    
+    for (final controller in _bookingStreamControllers.values) {
+      controller.close();
+    }
+    _bookingStreamControllers.clear();
   }
 }

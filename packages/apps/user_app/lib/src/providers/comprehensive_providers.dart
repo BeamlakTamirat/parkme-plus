@@ -120,34 +120,40 @@ final createBookingProvider =
   }
 });
 
-/// Active booking provider - shows current active booking
-final activeBookingProvider = FutureProvider<Booking?>((ref) async {
-  // Watch booking state to trigger refresh when it changes
-  ref.watch(bookingStateProvider);
-
+/// Real-time active booking provider - shows current active booking with live updates
+final activeBookingProvider = StreamProvider<Booking?>((ref) async* {
   final currentUser = await ref.read(currentUserProvider.future);
-  if (currentUser == null) return null;
+  if (currentUser == null) {
+    yield null;
+    return;
+  }
 
   final databaseService = ref.read(databaseServiceProvider);
-  final bookings = await databaseService.getUserBookings(currentUser.id);
-
-  // Find active booking (status: 'active' or 'pending')
-  return bookings
-      .where((booking) =>
-          booking.status == 'active' || booking.status == 'pending')
-      .firstOrNull;
+  
+  // Subscribe to real-time booking updates and filter for active bookings
+  await for (final bookings in databaseService.subscribeToUserBookings(currentUser.id)) {
+    // Find active booking (status: 'active' or 'pending')
+    final activeBooking = bookings
+        .where((booking) =>
+            booking.status == 'active' || booking.status == 'pending')
+        .firstOrNull;
+    
+    yield activeBooking;
+  }
 });
 
-/// Booking history provider - shows all user bookings
-final bookingHistoryProvider = FutureProvider<List<Booking>>((ref) async {
-  // Watch booking state to trigger refresh when it changes
-  ref.watch(bookingStateProvider);
-
+/// Real-time booking history provider - shows all user bookings with live updates
+final bookingHistoryProvider = StreamProvider<List<Booking>>((ref) async* {
   final currentUser = await ref.read(currentUserProvider.future);
-  if (currentUser == null) return [];
+  if (currentUser == null) {
+    yield [];
+    return;
+  }
 
   final databaseService = ref.read(databaseServiceProvider);
-  return await databaseService.getUserBookings(currentUser.id);
+  
+  // Subscribe to real-time booking updates for the current user
+  yield* databaseService.subscribeToUserBookings(currentUser.id);
 });
 
 /// Payment service provider
