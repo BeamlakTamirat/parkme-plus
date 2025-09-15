@@ -721,7 +721,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 95),
+                const SizedBox(width: 7),
                 Icon(
                   Icons.local_parking,
                   size: 16,

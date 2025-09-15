@@ -204,30 +204,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
         _isLoadingLocation = false;
       });
 
-      // Show success message with coordinates
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.location_on, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '📍 Location found! Map centered on your position\n'
-                    'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-
+      // Location found - no UI notification needed
       if (kDebugMode) {
         print(
             '✅ User location obtained: ${position.latitude}, ${position.longitude}');
@@ -577,12 +554,6 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             icon: const Icon(Icons.filter_list, color: Colors.black87),
             onPressed: () => _showFilterDialog(context),
           ),
-          if (kDebugMode)
-            IconButton(
-              icon: const Icon(Icons.bug_report, color: Colors.red),
-              onPressed: () => context.push('/debug'),
-              tooltip: 'Database Debug',
-            ),
         ],
       ),
       body: SafeArea(

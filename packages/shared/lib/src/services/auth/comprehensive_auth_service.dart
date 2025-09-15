@@ -465,8 +465,10 @@ class ComprehensiveAuthService {
             'New password must be at least 8 characters');
       }
 
+      // Appwrite requires current password for updatePassword
       await AppwriteConfig.account.updatePassword(
         password: newPassword,
+        oldPassword: currentPassword,
       );
 
       if (kDebugMode) print('✅ Password changed successfully');
@@ -483,6 +485,50 @@ class ComprehensiveAuthService {
       if (kDebugMode) print('❌ Unexpected password change error: $e');
       return ComprehensiveAuthResult.error(
           'Password change failed. Please try again.');
+    }
+  }
+
+  /// Update email in both auth and database
+  Future<ComprehensiveAuthResult> updateEmail({
+    required String newEmail,
+    required String password,
+  }) async {
+    try {
+      if (!_isValidEmail(newEmail)) {
+        return ComprehensiveAuthResult.error(
+            'Please enter a valid email address');
+      }
+
+      // Update email in Appwrite auth
+      await AppwriteConfig.account.updateEmail(
+        email: newEmail,
+        password: password,
+      );
+
+      // Get current user and update database
+      final currentUser = await getCurrentUser();
+      if (currentUser != null) {
+        final updatedUser = currentUser.copyWith(
+          email: newEmail,
+          updatedAt: DateTime.now(),
+        );
+        await DatabaseService.instance.updateUser(updatedUser);
+      }
+
+      if (kDebugMode) print('✅ Email updated successfully');
+
+      return ComprehensiveAuthResult.success(
+        user: null,
+        message: 'Email updated successfully!',
+      );
+    } on AppwriteException catch (e) {
+      if (kDebugMode) print('❌ Email update error: ${e.message}');
+      return ComprehensiveAuthResult.error(
+          _getErrorMessage(e.message ?? 'Email update failed'));
+    } catch (e) {
+      if (kDebugMode) print('❌ Unexpected email update error: $e');
+      return ComprehensiveAuthResult.error(
+          'Email update failed. Please try again.');
     }
   }
 
