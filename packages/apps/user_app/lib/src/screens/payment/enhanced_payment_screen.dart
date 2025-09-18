@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
+import '../../widgets/common/wepark_dialog.dart';
 
 class EnhancedPaymentScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> bookingData;
@@ -605,6 +606,10 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
         final booking =
             await _createBookingAfterPayment(paymentData, result.txRef ?? '');
         if (booking != null) {
+          // 🔥 CRITICAL FIX: Force real-time UI updates after booking creation
+          ref.invalidate(bookingHistoryProvider);
+          ref.invalidate(userBookingsProvider);
+          ref.invalidate(currentUserProvider);
           _showSuccessDialogWithQR(booking);
         } else {
           _showErrorDialog('Failed to create booking record');
@@ -710,32 +715,27 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 28),
-            SizedBox(width: 6),
-            Text('Booking Confirmed!'),
-          ],
-        ),
+      builder: (context) => WeParkDialog(
+        title: 'Booking Confirmed!',
+        titleIcon: Icons.check_circle,
+        titleIconColor: Colors.green,
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Parking: booked & \npayment: confirmed.',
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 20),
+              // const SizedBox(height: 6),
 
               // QR Code Section
-              const Text(
-                'Your Check-in QR Code',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              Container(
+                padding: EdgeInsets.only(left: 8.0),
+                child: const Text(
+                  'Your Check-in QR Code',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -743,13 +743,19 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.orange.withOpacity(0.1),
+                        Colors.orange.withOpacity(0.05)
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
                   ),
                   child: Column(
                     children: [
-                      // QR Code Image
                       QrImageView(
                         data: booking.qrCode ?? 'booking:${booking.id}',
                         version: QrVersions.auto,
@@ -758,14 +764,22 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
                         foregroundColor: Colors.black,
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        booking.qrCode ?? 'booking:${booking.id}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.black87,
-                          fontFamily: 'monospace',
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        textAlign: TextAlign.center,
+                        child: Text(
+                          'ID: ${(booking.qrCode ?? booking.id).length > 20 ? '${(booking.qrCode ?? booking.id).substring(0, 20)}...' : (booking.qrCode ?? booking.id)}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.black87,
+                            fontFamily: 'monospace',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ],
                   ),
@@ -781,15 +795,13 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info, color: Colors.blue, size: 20),
+                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Show this QR code to the parking attendant for check-in. Keep it safe for check-out as well.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF1565C0), // Colors.blue[800]
-                        ),
+                        'Show this QR code to the parking attendant for check-in and check-out.',
+                        style:
+                            TextStyle(fontSize: 14, color: Color(0xFF1565C0)),
                       ),
                     ),
                   ],
@@ -799,65 +811,95 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
 
               // Booking Details
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Location: $locationName',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    Text('Spot: ${booking.spotNumber}'),
-                    const SizedBox(height: 4),
-                    Text('Duration: $duration'),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Total Paid: ${CurrencyFormatter.format(amount)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Status: ${booking.status.toUpperCase()}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: booking.status == 'pending'
-                            ? Colors.orange
-                            : Colors.green,
-                      ),
-                    ),
+                    _buildDetailRow('Location', locationName),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Spot', booking.spotNumber),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Duration', duration),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                        'Total Paid', CurrencyFormatter.format(amount),
+                        isAmount: true),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Status', booking.status.toUpperCase(),
+                        isStatus: true, status: booking.status),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'You can also access this QR code from your booking history.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  'Access this QR code anytime from your booking history.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
         actions: [
-          OutlinedButton(
+          WeParkButton(
+            text: 'Go to Home',
+            icon: Icons.home,
             onPressed: () {
               Navigator.of(context).pop();
               context.go('/home');
             },
-            child: const Text('Go to Home'),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value,
+      {bool isAmount = false, bool isStatus = false, String? status}) {
+    Color? valueColor;
+    FontWeight? fontWeight;
+
+    if (isAmount) {
+      valueColor = Colors.green;
+      fontWeight = FontWeight.bold;
+    } else if (isStatus) {
+      fontWeight = FontWeight.bold;
+      valueColor = status == 'pending' ? Colors.orange : Colors.green;
+    } else {
+      fontWeight = FontWeight.w600;
+      valueColor = Colors.black87;
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: fontWeight,
+            color: valueColor,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/comprehensive_providers.dart';
+import '../../widgets/common/custom_success_notification.dart';
 
 class EnhancedSignUpScreen extends ConsumerStatefulWidget {
   const EnhancedSignUpScreen({super.key});
@@ -562,11 +563,9 @@ class _EnhancedSignUpScreenState extends ConsumerState<EnhancedSignUpScreen>
           ref.invalidate(currentUserProvider);
           ref.invalidate(isAuthenticatedProvider);
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result.message),
-              backgroundColor: Colors.green,
-            ),
+          context.showSuccessNotification(
+            result.message,
+            icon: Icons.person_add,
           );
           context.go('/home');
         } else {

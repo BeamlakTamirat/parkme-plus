@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
+import '../../widgets/common/wepark_dialog.dart';
 
 class ParkingHistoryScreen extends ConsumerStatefulWidget {
   const ParkingHistoryScreen({super.key});
@@ -404,176 +405,315 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Booking Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // QR Code Section for Active Bookings
-              if (isActiveBooking && booking.qrCode != null) ...[
-                const Text(
-                  'QR Code for Check-in/Check-out',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: Column(
-                      children: [
-                        QrImageView(
-                          data: booking.qrCode!,
-                          version: QrVersions.auto,
-                          size: 120.0,
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          booking.qrCode!,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.black87,
-                            fontFamily: 'monospace',
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.blue[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        booking.status == 'pending'
-                            ? Icons.schedule
-                            : Icons.check_circle,
-                        color: Colors.blue,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          booking.status == 'pending'
-                              ? 'Show to attendant for check-in'
-                              : 'Show to attendant for check-out',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF1565C0), // Colors.blue[800]
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // Booking Details
+      builder: (context) => WeParkDialog(
+        title: 'Booking Details',
+        titleIcon: Icons.receipt_long,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // QR Code Section for Active Bookings
+            if (isActiveBooking && booking.qrCode != null) ...[
               Container(
-                padding: const EdgeInsets.all(12),
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withOpacity(0.1),
+                      AppColors.primaryLight.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                        'Location: ${_getLocationName(booking.parkingLocationId)}'),
-                    const SizedBox(height: 6),
-                    Text('Spot: ${booking.spotNumber}'),
-                    const SizedBox(height: 6),
-                    Text('Vehicle: ${booking.vehiclePlateNumber}'),
-                    const SizedBox(height: 6),
-                    Text('Start: ${booking.formattedStartTime}'),
-                    const SizedBox(height: 6),
-                    Text('End: ${booking.formattedEndTime}'),
-                    const SizedBox(height: 6),
-                    Text(
-                        'Duration: ${booking.durationInHours.toStringAsFixed(1)} hours'),
-                    const SizedBox(height: 6),
-                    Text('Amount: ${booking.formattedTotalAmount}'),
-                    const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Text('Status: '),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(booking.status)
-                                .withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          child: const Icon(
+                            Icons.qr_code,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
                           child: Text(
-                            booking.status.toUpperCase(),
+                            'QR Code for Check-in/Check-out',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: _getStatusColor(booking.status),
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text('Payment: ${booking.paymentStatus}'),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: AppColors.shadow,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          QrImageView(
+                            data: booking.qrCode!,
+                            version: QrVersions.auto,
+                            size: 140.0,
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.grey100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              booking.qrCode!,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textSecondary,
+                                fontFamily: 'monospace',
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.info.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border:
+                            Border.all(color: AppColors.info.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            booking.status == 'pending'
+                                ? Icons.schedule
+                                : Icons.check_circle,
+                            color: AppColors.info,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              booking.status == 'pending'
+                                  ? 'Show to attendant for check-in'
+                                  : 'Show to attendant for check-out',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
+            ],
 
-              // Instructions for completed bookings
-              if (booking.status == 'completed') ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.green[200]!),
+            // Booking Details
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.grey200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDetailRow(
+                    'Location',
+                    _getLocationName(booking.parkingLocationId),
+                    Icons.location_on,
                   ),
-                  child: const Row(
+                  _buildDetailRow(
+                      'Spot', booking.spotNumber, Icons.local_parking),
+                  _buildDetailRow(
+                    'Vehicle',
+                    booking.vehiclePlateNumber,
+                    Icons.directions_car,
+                  ),
+                  _buildDetailRow(
+                    'Start Time',
+                    booking.formattedStartTime,
+                    Icons.schedule,
+                  ),
+                  _buildDetailRow(
+                    'End Time',
+                    booking.formattedEndTime,
+                    Icons.schedule_outlined,
+                  ),
+                  _buildDetailRow(
+                    'Duration',
+                    '${booking.durationInHours.toStringAsFixed(1)} hours',
+                    Icons.timer,
+                  ),
+                  _buildDetailRow(
+                    'Amount',
+                    booking.formattedTotalAmount,
+                    Icons.payments,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 16),
-                      SizedBox(width: 6),
-                      Text(
-                        'Booking completed successfully',
+                      const Icon(
+                        Icons.info_outline,
+                        color: AppColors.textSecondary,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Status:',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF2E7D32), // Colors.green[800]
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              _getStatusColor(booking.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _getStatusColor(booking.status)
+                                .withOpacity(0.3),
+                          ),
+                        ),
+                        child: Text(
+                          booking.status.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _getStatusColor(booking.status),
+                          ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  _buildDetailRow(
+                    'Payment',
+                    booking.paymentStatus,
+                    Icons.payment,
+                  ),
+                ],
+              ),
+            ),
+
+            // Instructions for completed bookings
+            if (booking.status == 'completed') ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.success.withOpacity(0.3)),
                 ),
-              ],
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: AppColors.success,
+                      size: 18,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Booking completed successfully',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
-          ),
+          ],
         ),
         actions: [
-          TextButton(
+          WeParkButton(
+            text: 'Close',
+            isOutlined: true,
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: AppColors.textSecondary,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$label:',
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -634,7 +774,8 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                 ),
                 // Status Badge - This was missing!
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -746,7 +887,8 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                 // Duration section
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.grey.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
@@ -777,7 +919,8 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                 // Cost section
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.orange.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
@@ -1040,8 +1183,10 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
   Future<void> _cancelBooking(BuildContext context, Booking booking) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Booking'),
+      builder: (context) => WeParkDialog(
+        title: 'Cancel Booking',
+        titleIcon: Icons.cancel,
+        titleIconColor: Colors.red,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1095,14 +1240,11 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     color: Colors.amber[700],
                     size: 16,
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
+                  const SizedBox(width: 8),
+                  const Expanded(
                     child: Text(
-                      'This action cannot be undone. The booking will be cancelled and any refund will be processed according to our policy.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.amber[800],
-                      ),
+                      'This action cannot be undone',
+                      style: TextStyle(fontSize: 12),
                     ),
                   ),
                 ],
@@ -1111,17 +1253,16 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
           ],
         ),
         actions: [
-          TextButton(
+          WeParkButton(
+            text: 'Keep',
+            isOutlined: true,
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep Booking'),
           ),
-          ElevatedButton(
+          WeParkButton(
+            text: 'Cancel',
+            backgroundColor: Colors.red,
+            icon: Icons.delete_forever,
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Cancel Booking'),
           ),
         ],
       ),
@@ -1161,6 +1302,11 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
         }
 
         if (success) {
+          // 🔥 CRITICAL FIX: Force real-time UI updates
+          ref.invalidate(bookingHistoryProvider);
+          ref.invalidate(userBookingsProvider);
+          ref.invalidate(currentUserProvider);
+
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1227,14 +1373,9 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Row(
-            children: [
-              Text('Filter Bookings'),
-              Spacer(),
-              Icon(Icons.filter_list, color: Colors.blue),
-            ],
-          ),
+        builder: (context, setState) => WeParkDialog(
+          title: 'Filter Bookings',
+          titleIcon: Icons.filter_list,
           content: Container(
             width: double.maxFinite,
             constraints: BoxConstraints(
@@ -1368,20 +1509,19 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
             if (_selectedFilter != 'all') ...[
-              TextButton(
+              WeParkButton(
+                text: 'Clear',
+                isOutlined: true,
                 onPressed: () {
                   Navigator.pop(context);
                   _resetFilter();
                 },
-                child: const Text('Clear Filter'),
               ),
             ],
-            ElevatedButton(
+            WeParkButton(
+              text: 'Apply',
+              icon: Icons.check,
               onPressed: () {
                 Navigator.pop(context);
                 // Apply the selected filter
@@ -1392,11 +1532,6 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                   _applyFilter();
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Apply Filter'),
             ),
           ],
         ),

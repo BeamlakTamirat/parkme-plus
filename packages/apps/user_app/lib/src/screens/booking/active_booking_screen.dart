@@ -53,7 +53,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
     // Adjust for timezone offset - add 3 hours
     final now = DateTime.now().add(const Duration(hours: 3));
     final endTime = _currentBooking!.endTime!;
-    
+
     setState(() {
       if (now.isBefore(endTime)) {
         _timeRemaining = endTime.difference(now);
@@ -73,7 +73,8 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
         if (location != null) {
           _createBooking(location);
         }
-      } else if (bookingData['action'] == 'view' && bookingData['booking'] != null) {
+      } else if (bookingData['action'] == 'view' &&
+          bookingData['booking'] != null) {
         // Load existing booking data when accessed via MANAGE button
         setState(() {
           _currentBooking = bookingData['booking'] as Booking;
@@ -92,14 +93,17 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
       if (currentUser == null) return;
 
       final databaseService = ref.read(databaseServiceProvider);
-      final userBookings = await databaseService.getUserBookings(currentUser.id);
-      
+      final userBookings =
+          await databaseService.getUserBookings(currentUser.id);
+
       // Find the most recent active booking
       final activeBooking = userBookings
-          .where((booking) => booking.status == 'active' || booking.status == 'pending')
-          .isNotEmpty
+              .where((booking) =>
+                  booking.status == 'active' || booking.status == 'pending')
+              .isNotEmpty
           ? userBookings
-              .where((booking) => booking.status == 'active' || booking.status == 'pending')
+              .where((booking) =>
+                  booking.status == 'active' || booking.status == 'pending')
               .reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b)
           : null;
 
@@ -154,6 +158,11 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
           _currentBooking = result.booking;
         });
 
+        //  CRITICAL FIX: Force real-time UI updates after booking creation
+        ref.invalidate(bookingHistoryProvider);
+        ref.invalidate(userBookingsProvider);
+        ref.invalidate(currentUserProvider);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -202,20 +211,58 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
             ),
           ),
         ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text(
-                'Creating your booking...',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+        body: Center(
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            margin: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.orange, Colors.orange.withOpacity(0.8)],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Creating Your Booking',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Please wait while we reserve your parking space...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -241,20 +288,58 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
             ),
           ),
         ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text(
-                'Loading booking details...',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+        body: Center(
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            margin: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.orange, Colors.orange.withOpacity(0.8)],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Loading Booking Details',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Fetching your active booking information...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -305,7 +390,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
   Widget _buildActiveStatusBanner() {
     final status = _currentBooking?.status ?? 'unknown';
     final spotNumber = _currentBooking?.spotNumber ?? 'N/A';
-    
+
     Color statusColor;
     Color bgColor;
     Color borderColor;
@@ -356,27 +441,55 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            statusColor.withOpacity(0.1),
+            statusColor.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: statusColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: statusColor,
-              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  statusColor,
+                  statusColor.withOpacity(0.8),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: statusColor.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(
               statusIcon,
               color: Colors.white,
-              size: 16,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,21 +497,52 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                 Text(
                   statusText,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                     color: statusColor,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   statusMessage,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     color: statusColor.withOpacity(0.8),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
+          if (status.toLowerCase() == 'pending') ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: statusColor.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.access_time,
+                    size: 14,
+                    color: statusColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Ready',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -439,7 +583,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _isOverdue 
+            _isOverdue
                 ? 'Booking ended at ${_currentBooking?.formattedEndTime ?? '5:00 PM'}'
                 : 'Until ${_currentBooking?.formattedEndTime ?? '5:00 PM'}',
             style: TextStyle(
@@ -473,9 +617,10 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
 
   Widget _buildParkingDetailsSection() {
     // Get actual booking data or fallback values
-    final locationName = _currentBooking?.parkingLocationId ?? 'Unknown Location';
+    final locationName =
+        _currentBooking?.parkingLocationId ?? 'Unknown Location';
     final spotNumber = _currentBooking?.spotNumber ?? 'N/A';
-    final vehicleInfo = _currentBooking?.vehiclePlateNumber != null 
+    final vehicleInfo = _currentBooking?.vehiclePlateNumber != null
         ? '${_currentBooking?.vehicleModel ?? 'Vehicle'} (${_currentBooking?.vehiclePlateNumber})'
         : 'No vehicle info';
     final startTime = _currentBooking?.formattedStartTime ?? 'N/A';
@@ -572,13 +717,22 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white,
+                Colors.grey[50]!,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border:
+                Border.all(color: Colors.orange.withOpacity(0.2), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+                color: Colors.orange.withOpacity(0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -608,7 +762,8 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                       ),
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.grey[100],
                           borderRadius: BorderRadius.circular(6),
@@ -660,7 +815,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                hasValidQR 
+                hasValidQR
                     ? 'Show this QR code to the attendant for check-in and check-out'
                     : 'QR code will be generated once booking is confirmed',
                 style: TextStyle(
@@ -673,7 +828,8 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
               if (hasValidQR) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.blue[50],
                     borderRadius: BorderRadius.circular(8),

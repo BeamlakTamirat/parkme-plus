@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
+import '../../widgets/common/custom_success_notification.dart';
+import '../../widgets/common/wepark_dialog.dart';
 
 class FindParkingScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? extraData;
@@ -259,13 +261,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   void _centerOnUserLocation() async {
     final location = await _getCurrentLocationWithPermission();
     if (location != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Centered on your location: ${location.latitude.toStringAsFixed(4)}, ${location.longitude.toStringAsFixed(4)}'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
+      context.showSuccessNotification(
+        'Centered on your location: ${location.latitude.toStringAsFixed(4)}, ${location.longitude.toStringAsFixed(4)}',
+        icon: Icons.my_location,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1584,38 +1582,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Row(
-            children: [
-              const Text('Advanced Filters'),
-              const Spacer(),
-              if (_useAdvancedFilters)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green, width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.check_circle,
-                          color: Colors.green, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${_filteredLocations.length} found',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+        builder: (context, setState) => WeParkDialog(
+          title: 'Filter Parking',
+          titleIcon: Icons.filter_list,
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1812,7 +1781,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             ),
           ),
           actions: [
-            TextButton(
+            WeParkButton(
+              text: 'Reset',
+              isOutlined: true,
               onPressed: () {
                 // Reset to defaults
                 setState(() {
@@ -1821,26 +1792,17 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   _minRating = 3.0;
                   _hasAvailableSpots = false;
                   _showOnlyActive = true;
-                  // _selectedAmenities = [];
                   _useAdvancedFilters = false;
                 });
               },
-              child: const Text('Reset'),
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
+            WeParkButton(
+              text: 'Apply Filters',
+              icon: Icons.check,
               onPressed: () {
                 Navigator.pop(context);
                 _applyAdvancedFilters();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Apply Filters'),
             ),
           ],
         ),
@@ -1877,8 +1839,9 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           final durationHours = duration.inMinutes / 60.0;
           final totalCost = location.hourlyRate * durationHours;
 
-          return AlertDialog(
-            title: const Text('Book Parking Spot'),
+          return WeParkDialog(
+            title: 'Book Parking Spot',
+            titleIcon: Icons.local_parking,
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -2075,21 +2038,19 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
               ),
             ),
             actions: [
-              TextButton(
+              WeParkButton(
+                text: 'Cancel',
+                isOutlined: true,
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
               ),
-              ElevatedButton(
+              WeParkButton(
+                text: 'Continue',
+                icon: Icons.payment,
                 onPressed: () {
                   Navigator.of(context).pop();
                   _proceedToPayment(
                       context, location, selectedStartTime, selectedEndTime);
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Continue to Payment'),
               ),
             ],
           );

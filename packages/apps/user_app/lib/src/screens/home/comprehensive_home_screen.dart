@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared/shared.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/comprehensive_providers.dart';
+import '../../widgets/common/custom_success_notification.dart';
+import '../../widgets/common/wepark_dialog.dart';
 import '../parking/find_parking_screen.dart';
 import '../history/parking_history_screen.dart';
 import '../profile/profile_screen.dart';
@@ -772,50 +776,67 @@ class _HomeContent extends ConsumerWidget {
   void _showEmergencyContact(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Emergency Contact'),
-        content: const Column(
+      builder: (context) => WeParkDialog(
+        title: 'Emergency Contact',
+        titleIcon: Icons.emergency,
+        titleIconColor: Colors.red,
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('For parking emergencies or assistance:'),
-            SizedBox(height: 16),
-            Text(
-              'Emergency Hotline:\n+251-911-123-456',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.grey200),
               ),
-              textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.phone_in_talk,
+                    size: 48,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'For parking emergencies or assistance:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    ),
+                    child: const Text(
+                      'Emergency Hotline\n+251-940-926-102',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // This would open the phone dialer
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Opening phone dialer...'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Call Now'),
-          ),
-        ],
       ),
     );
   }
+
 
   void _showProfile(BuildContext context) {
     // Switch to Profile tab in bottom navigation
@@ -826,16 +847,16 @@ class _HomeContent extends ConsumerWidget {
     final authService = ref.read(comprehensiveAuthProvider);
     final success = await authService.signOut();
 
-    if (success && context.mounted) {
-      // Refresh user data to clear the cached user info
+    if (success) {
+      // Clear all providers
       ref.invalidate(currentUserProvider);
-      ref.invalidate(isAuthenticatedProvider);
+      ref.invalidate(userBookingsProvider);
+      ref.invalidate(parkingLocationsProvider);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Signed out successfully'),
-          backgroundColor: Colors.green,
-        ),
+      // Show success message with custom notification
+      context.showSuccessNotification(
+        'Signed out successfully',
+        icon: Icons.logout,
       );
       context.go('/sign-in');
     }

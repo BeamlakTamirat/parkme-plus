@@ -2,11 +2,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared/shared.dart';
 import '../../providers/comprehensive_providers.dart';
+import '../../widgets/common/custom_success_notification.dart';
 
 /// 🧭 Advanced Navigation Screen with Route Display
 /// Shows shortest path from user location to booked parking spot
@@ -441,19 +442,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _callSupport,
-              icon: const Icon(Icons.support_agent),
-              label: const Text('Support'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
+          
         ],
       ),
     );
@@ -501,12 +490,9 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
           print('🧭 Opened navigation app with URL: $mapsUrl');
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🧭 Navigation started to ${_targetLocation!.name}'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
+        context.showSuccessNotification(
+          '🧭 Navigation started to ${_targetLocation!.name}',
+          icon: Icons.navigation,
         );
       } else {
         // Fallback: Open in web browser
@@ -518,12 +504,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
               mode: LaunchMode.externalApplication);
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🗺️ Opened directions in web browser'),
-            backgroundColor: Colors.blue,
-          ),
-        );
+        
       }
     } catch (e) {
       if (kDebugMode) print('❌ Error starting navigation: $e');
@@ -537,16 +518,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
     }
   }
 
-// Removed unused methods: _openInMaps and _shareLocation
-
-  void _callSupport() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('📞 Contacting support...'),
-        backgroundColor: Colors.purple,
-      ),
-    );
-  }
+  
 
   Widget _buildLoadingWidget(String message) {
     return Center(
