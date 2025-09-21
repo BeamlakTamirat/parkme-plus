@@ -297,6 +297,14 @@ class DatabaseService {
         endTime = DateTime.parse(bookingData['endTime']);
       }
 
+      if (kDebugMode) {
+        print('🔍 DATABASE SERVICE - Transaction ID Debug:');
+        print('   Raw transactionId from bookingData: ${bookingData['transactionId']}');
+        print('   Type: ${bookingData['transactionId'].runtimeType}');
+        print('   Is null: ${bookingData['transactionId'] == null}');
+        print('   Is empty: ${bookingData['transactionId'] == ""}');
+      }
+
       // Create Booking object from map data
       final booking = Booking(
         id: bookingId,
@@ -319,6 +327,11 @@ class DatabaseService {
         updatedAt: DateTime.now(),
         metadata: bookingData['metadata'],
       );
+
+      if (kDebugMode) {
+        print('🔍 BOOKING OBJECT - Transaction ID: ${booking.transactionId}');
+        print('🔍 DOCUMENT DATA: ${booking.toDocument()}');
+      }
 
       await _databases.createDocument(
         databaseId: _databaseId,

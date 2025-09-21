@@ -1,11 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared/shared.dart';
 import 'src/app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  try {
+    print('🔧 Loading environment variables...');
+    await dotenv.load(fileName: ".env");
+    print('✅ Environment variables loaded successfully');
+
+    // Verify Chapa API keys are loaded
+    final testSecretKey = dotenv.env['CHAPA_SECRET_KEY_TEST'];
+    final testPublicKey = dotenv.env['CHAPA_PUBLIC_KEY_TEST'];
+
+    if (testSecretKey != null && testSecretKey.startsWith('CHASECK_TEST-')) {
+      print('✅ Chapa Secret Key loaded: ${testSecretKey.substring(0, 20)}...');
+    } else {
+      print('❌ Chapa Secret Key not found or invalid format');
+      print('🔍 Current value: $testSecretKey');
+    }
+
+    if (testPublicKey != null && testPublicKey.startsWith('CHAPUBK_TEST-')) {
+      print('✅ Chapa Public Key loaded: ${testPublicKey.substring(0, 20)}...');
+    } else {
+      print('❌ Chapa Public Key not found or invalid format');
+      print('🔍 Current value: $testPublicKey');
+    }
+  } catch (e) {
+    print('❌ Failed to load .env file: $e');
+    print('📁 Make sure .env file exists in the root directory');
+    print('ℹ️  App will continue with default values');
+  }
 
   // Initialize Appwrite
   try {

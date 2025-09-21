@@ -33,6 +33,17 @@ dependencies:
   # URL Launcher for external apps
   url_launcher: ^6.2.5
 
+  # WebView for in-app payment
+  webview_flutter: ^4.4.2
+
+  # PDF generation and file operations
+  pdf: ^3.10.7
+  path_provider: ^2.1.2
+  permission_handler: ^11.3.0
+
+  # Environment Variables
+  flutter_dotenv: ^5.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

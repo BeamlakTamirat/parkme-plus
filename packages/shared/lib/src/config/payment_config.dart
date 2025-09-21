@@ -1,115 +1,169 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Payment gateway configuration for Chapa and other providers
 class PaymentConfig {
   // Chapa configuration
   static String get chapaSecretKey {
     if (kDebugMode) {
-      return 'CHASECK_TEST-your-test-secret-key';
+      // Use your real test secret key from the screenshot
+      final key = dotenv.env['CHAPA_SECRET_KEY_TEST'] ??
+          'CHASECK_TEST-qHxmxQJXBth9waI2hWGrJOYhQck50n1v'; // Your real test key
+      print('🔑 Loading Chapa Secret Key: ${key.substring(0, 20)}...');
+      return key;
     } else {
-      return 'CHASECK-your-production-secret-key';
+      return dotenv.env['CHAPA_SECRET_KEY_PROD'] ??
+          'CHASECK-your-production-secret-key';
     }
   }
-  
+
   static String get chapaPublicKey {
     if (kDebugMode) {
-      return 'CHAPUBK_TEST-your-test-public-key';
+      // Use your real test public key from the screenshot  
+      final key = dotenv.env['CHAPA_PUBLIC_KEY_TEST'] ??
+          'CHAPUBK_TEST-qHxmxQJXBth9waI2hWGrJOYhQck50n1v'; // Your real test key
+      print('🔑 Loading Chapa Public Key: ${key.substring(0, 20)}...');
+      return key;
     } else {
-      return 'CHAPUBK-your-production-public-key';
+      return dotenv.env['CHAPA_PUBLIC_KEY_PROD'] ??
+          'CHAPUBK-your-production-public-key';
     }
   }
-  
+
   static String get chapaBaseUrl {
     if (kDebugMode) {
-      return 'https://api.chapa.co/v1';
+      return dotenv.env['CHAPA_BASE_URL_TEST'] ?? 'https://api.chapa.co/v1';
     } else {
-      return 'https://api.chapa.co/v1';
+      return dotenv.env['CHAPA_BASE_URL_PROD'] ?? 'https://api.chapa.co/v1';
     }
   }
-  
+
   // Payment configuration
-  static const String defaultCurrency = 'ETB';
-  static const double minimumAmount = 10.0; // Minimum 10 ETB
-  static const double maximumAmount = 50000.0; // Maximum 50,000 ETB
-  static const int paymentTimeoutMinutes = 15;
-  
+  static String get defaultCurrency {
+    return dotenv.env['DEFAULT_CURRENCY'] ?? 'ETB';
+  }
+
+  static double get minimumAmount {
+    return double.parse(dotenv.env['MINIMUM_AMOUNT'] ?? '10.0');
+  }
+
+  static double get maximumAmount {
+    return double.parse(dotenv.env['MAXIMUM_AMOUNT'] ?? '50000.0');
+  }
+
+  static int get paymentTimeoutMinutes {
+    return int.parse(dotenv.env['PAYMENT_TIMEOUT_MINUTES'] ?? '15');
+  }
+
   // Supported payment methods
-  static const List<String> supportedPaymentMethods = [
-    'telebirr',
-    'cbe_birr',
-    'awash_birr',
-    'ebirr',
-    'mpesa',
-    'visa',
-    'mastercard',
-  ];
-  
+  static List<String> get supportedPaymentMethods {
+    return dotenv.env['SUPPORTED_PAYMENT_METHODS']?.split(',') ??
+        [
+          'telebirr',
+          'cbe_birr',
+          'awash_birr',
+          'ebirr',
+          'mpesa',
+          'visa',
+          'mastercard',
+        ];
+  }
+
   // Transaction fees (percentage)
-  static const Map<String, double> transactionFees = {
-    'telebirr': 0.025, // 2.5%
-    'cbe_birr': 0.02, // 2%
-    'awash_birr': 0.02, // 2%
-    'ebirr': 0.025, // 2.5%
-    'mpesa': 0.03, // 3%
-    'visa': 0.035, // 3.5%
-    'mastercard': 0.035, // 3.5%
-  };
-
-  // Payment callback URLs
-  static String get paymentSuccessUrl {
-    if (kDebugMode) {
-      return 'https://dev.wepark.et/payment/success';
+  static Object get transactionFees {
+    final fees = dotenv.env['TRANSACTION_FEES'];
+    if (fees != null) {
+      return fees.split(',').map((fee) {
+        final parts = fee.split(':');
+        return MapEntry(parts[0], double.parse(parts[1]));
+      }).toList();
     } else {
-      return 'https://wepark.et/payment/success';
+      return {
+        'telebirr': 0.025, // 2.5%
+        'cbe_birr': 0.02, // 2%
+        'awash_birr': 0.02, // 2%
+        'ebirr': 0.025, // 2.5%
+        'mpesa': 0.03, // 3%
+        'visa': 0.035, // 3.5%
+        'mastercard': 0.035, // 3.5%
+      };
     }
   }
 
-  static String get paymentFailureUrl {
-    if (kDebugMode) {
-      return 'https://dev.wepark.et/payment/failure';
-    } else {
-      return 'https://wepark.et/payment/failure';
-    }
+  // Payment callback URLs - REMOVED to keep Chapa receipt visible
+  static String? get paymentSuccessUrl {
+    // Return null to prevent automatic redirect from Chapa receipt
+    return null;
   }
 
-  static String get paymentCancelUrl {
-    if (kDebugMode) {
-      return 'https://dev.wepark.et/payment/cancel';
-    } else {
-      return 'https://wepark.et/payment/cancel';
-    }
+  static String? get paymentFailureUrl {
+    // Return null to prevent automatic redirect from Chapa receipt
+    return null;
+  }
+
+  static String? get paymentCancelUrl {
+    // Return null to prevent automatic redirect from Chapa receipt
+    return null;
   }
 
   // Webhook configuration
   static String get webhookSecret {
     if (kDebugMode) {
-      return 'your-test-webhook-secret';
+      return dotenv.env['WEBHOOK_SECRET_TEST'] ?? 'wepark_webhook_secret_2024';
     } else {
-      return 'your-production-webhook-secret';
+      return dotenv.env['WEBHOOK_SECRET_PROD'] ??
+          'your-production-webhook-secret';
     }
   }
 
   static String get webhookUrl {
     if (kDebugMode) {
-      return 'https://dev-api.wepark.et/webhooks/chapa';
+      // You need to get a unique webhook.site URL and set it in your Chapa dashboard
+      return dotenv.env['WEBHOOK_URL_TEST'] ??
+          'https://webhook.site/your-unique-id-here';
     } else {
-      return 'https://api.wepark.et/webhooks/chapa';
+      return dotenv.env['WEBHOOK_URL_PROD'] ??
+          'https://api.wepark.et/webhooks/chapa';
     }
   }
 
   // Refund configuration
-  static const int refundProcessingDays = 3;
-  static const double refundFeePercentage = 0.01; // 1% refund fee
-  static const double fullRefundWindowHours = 1; // Full refund within 1 hour
+  static int get refundProcessingDays {
+    return int.parse(dotenv.env['REFUND_PROCESSING_DAYS'] ?? '3');
+  }
+
+  static double get refundFeePercentage {
+    return double.parse(dotenv.env['REFUND_FEE_PERCENTAGE'] ?? '0.01');
+  }
+
+  static double get fullRefundWindowHours {
+    return double.parse(dotenv.env['FULL_REFUND_WINDOW_HOURS'] ?? '1');
+  }
 
   // Payment retry configuration
-  static const int maxPaymentRetries = 3;
-  static const Duration paymentRetryDelay = Duration(minutes: 5);
+  static int get maxPaymentRetries {
+    return int.parse(dotenv.env['MAX_PAYMENT_RETRIES'] ?? '3');
+  }
+
+  static Duration get paymentRetryDelay {
+    return Duration(
+        minutes: int.parse(dotenv.env['PAYMENT_RETRY_DELAY_MINUTES'] ?? '5'));
+  }
 
   // Security configuration
-  static const int transactionIdLength = 32;
-  static const String transactionIdPrefix = 'WP';
-  static const Duration paymentSessionTimeout = Duration(minutes: 30);
+  static int get transactionIdLength {
+    return int.parse(dotenv.env['TRANSACTION_ID_LENGTH'] ?? '32');
+  }
+
+  static String get transactionIdPrefix {
+    return dotenv.env['TRANSACTION_ID_PREFIX'] ?? 'WP';
+  }
+
+  static Duration get paymentSessionTimeout {
+    return Duration(
+        minutes:
+            int.parse(dotenv.env['PAYMENT_SESSION_TIMEOUT_MINUTES'] ?? '30'));
+  }
 }
 
 /// Chapa payment method configurations
@@ -121,7 +175,7 @@ class ChapaPaymentMethods {
   static const String mpesa = 'mpesa';
   static const String visa = 'visa';
   static const String mastercard = 'mastercard';
-  
+
   // Payment method display names
   static const Map<String, String> displayNames = {
     telebirr: 'Telebirr',

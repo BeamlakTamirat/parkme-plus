@@ -36,7 +36,14 @@ class ChapaPaymentService {
     Map<String, dynamic>? customizations,
   }) async {
     try {
-      if (kDebugMode) print('💳 Initializing Chapa payment for: $email');
+      if (kDebugMode) {
+        print('💳 Initializing Chapa payment for: $email');
+        print(
+            '🔑 Using API Key: ${PaymentConfig.chapaSecretKey.substring(0, 20)}...');
+        print(
+            '🌐 API URL: ${PaymentConfig.chapaBaseUrl}/transaction/initialize');
+        print('💰 Amount: $amount $currency');
+      }
 
       final url =
           Uri.parse('${PaymentConfig.chapaBaseUrl}/transaction/initialize');
@@ -59,10 +66,17 @@ class ChapaPaymentService {
         if (customizations != null) 'customizations': customizations,
       };
 
+      if (kDebugMode) {
+        print('📤 Request Body: ${jsonEncode(body)}');
+      }
+
       final response =
           await http.post(url, headers: headers, body: jsonEncode(body));
 
-      if (kDebugMode) print('📡 Chapa response: ${response.statusCode}');
+      if (kDebugMode) {
+        print('📡 Chapa response: ${response.statusCode}');
+        print('📥 Response Body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -76,15 +90,20 @@ class ChapaPaymentService {
         );
       } else {
         final error = jsonDecode(response.body);
-        if (kDebugMode)
+        if (kDebugMode) {
           print('❌ Payment initialization failed: ${error['message']}');
+          print('🔍 Full error response: ${response.body}');
+        }
 
         return ChapaPaymentResult.error(
           error['message'] ?? 'Payment initialization failed',
         );
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Payment initialization error: $e');
+      if (kDebugMode) {
+        print('❌ Payment initialization error: $e');
+        print('🔍 Error type: ${e.runtimeType}');
+      }
       return ChapaPaymentResult.error('Payment initialization failed: $e');
     }
   }
@@ -96,6 +115,7 @@ class ChapaPaymentService {
     try {
       if (kDebugMode) print('🔍 Verifying payment: $txRef');
 
+      // Correct Chapa verification endpoint - note: some APIs use different endpoints
       final url =
           Uri.parse('${PaymentConfig.chapaBaseUrl}/transaction/verify/$txRef');
 
@@ -104,9 +124,16 @@ class ChapaPaymentService {
         'Content-Type': 'application/json',
       };
 
+      if (kDebugMode) {
+        print('🌐 Verification URL: $url');
+      }
+
       final response = await http.get(url, headers: headers);
 
-      if (kDebugMode) print('📡 Verification response: ${response.statusCode}');
+      if (kDebugMode) {
+        print('📡 Verification response: ${response.statusCode}');
+        print('📥 Response body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -192,27 +219,11 @@ class ChapaPaymentService {
 
       final txRef = 'WEPARK_${DateTime.now().millisecondsSinceEpoch}';
 
-      // For testing environment, simulate payment
-      if (kDebugMode) {
-        if (kDebugMode) print('🧪 Running in test mode - simulating payment');
-
-        await Future.delayed(
-            const Duration(seconds: 2)); // Simulate processing time
-
-        return ChapaPaymentResult.success(
-          txRef: txRef,
-          status: 'success',
-          amount: amount.toString(),
-          currency: 'ETB',
-          message: 'Test payment completed successfully',
-          checkoutUrl: 'https://test.chapa.co/checkout/$txRef',
-        );
-      }
+      // 🔥 REMOVED: Test mode simulation that was preventing real Chapa API calls
+      // Now the app will make real API calls to Chapa using your actual API keys
 
       final customizations = {
         'title': 'WePark Parking Payment',
-        'description': 'Parking booking payment for $vehiclePlateNumber',
-        'logo': 'https://wepark.com/logo.png', // Replace with your logo URL
       };
 
       final result = await initializePayment(
@@ -237,6 +248,145 @@ class ChapaPaymentService {
     } catch (e) {
       if (kDebugMode) print('❌ Parking payment creation error: $e');
       return ChapaPaymentResult.error('Failed to create parking payment: $e');
+    }
+  }
+
+  /// Generate receipt data for completed payment
+  Map<String, dynamic> generateReceiptData({
+    required String txRef,
+    required String amount,
+    required String currency,
+    required String userEmail,
+    required String userName,
+    required String paymentMethod,
+    required DateTime paymentDate,
+  }) {
+    try {
+      final receiptData = {
+        'receipt_id': 'WP-${DateTime.now().millisecondsSinceEpoch}',
+        'transaction_id': txRef,
+        'amount': amount,
+        'currency': currency,
+        'user_email': userEmail,
+        'user_name': userName,
+        'payment_method': paymentMethod,
+        'payment_date': paymentDate.toIso8601String(),
+        'merchant_name': 'WePark Smart Parking',
+        'merchant_address': 'Addis Ababa, Ethiopia',
+        'status': 'completed',
+        'generated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (kDebugMode) {
+        print('📄 Generated receipt data for: $txRef');
+      }
+
+      return receiptData;
+    } catch (e) {
+      if (kDebugMode) print('❌ Receipt data generation error: $e');
+      return {
+        'error': 'Failed to generate receipt data',
+        'transaction_id': txRef,
+      };
+    }
+  }
+
+  /// Generate receipt download URL for completed payment
+  String generateReceiptUrl({
+    required String txRef,
+    required String amount,
+    required String currency,
+    required String userEmail,
+    required String userName,
+    required String paymentMethod,
+    required DateTime paymentDate,
+  }) {
+    try {
+      // Create a simple data URL with receipt information
+      // This creates a downloadable text receipt
+      final receiptData = generateReceiptData(
+        txRef: txRef,
+        amount: amount,
+        currency: currency,
+        userEmail: userEmail,
+        userName: userName,
+        paymentMethod: paymentMethod,
+        paymentDate: paymentDate,
+      );
+
+      // Create receipt text content
+      final receiptText = '''
+═══════════════════════════════════════
+           WEPARK SMART PARKING
+              PAYMENT RECEIPT
+═══════════════════════════════════════
+
+Receipt ID: ${receiptData['receipt_id']}
+Transaction ID: ${receiptData['transaction_id']}
+
+Customer Information:
+Name: ${receiptData['user_name']}
+Email: ${receiptData['user_email']}
+
+Payment Details:
+Amount: ${receiptData['amount']} ${receiptData['currency']}
+Payment Method: ${receiptData['payment_method']}
+Payment Date: ${DateTime.parse(receiptData['payment_date']).toString().split('.')[0]}
+Status: ${receiptData['status'].toUpperCase()}
+
+Merchant Information:
+${receiptData['merchant_name']}
+${receiptData['merchant_address']}
+
+Generated: ${DateTime.parse(receiptData['generated_at']).toString().split('.')[0]}
+
+═══════════════════════════════════════
+Thank you for using WePark Smart Parking!
+═══════════════════════════════════════
+''';
+
+      // Create data URL for download
+      final encodedReceipt = Uri.encodeComponent(receiptText);
+      final dataUrl = 'data:text/plain;charset=utf-8,$encodedReceipt';
+
+      if (kDebugMode) {
+        print('📄 Generated receipt data URL for: $txRef');
+      }
+
+      return dataUrl;
+    } catch (e) {
+      if (kDebugMode) print('❌ Receipt URL generation error: $e');
+      return 'data:text/plain;charset=utf-8,Receipt generation failed for transaction: $txRef';
+    }
+  }
+
+  /// Download receipt as PDF (for future implementation)
+  Future<ChapaPaymentResult> downloadReceipt({
+    required String txRef,
+    required String userEmail,
+  }) async {
+    try {
+      if (kDebugMode) print('📄 Downloading receipt for: $txRef');
+
+      // For now, return the receipt URL
+      // In production, this would generate and download actual PDF
+      final receiptUrl = generateReceiptUrl(
+        txRef: txRef,
+        amount: '0.00', // Would be fetched from transaction
+        currency: 'ETB',
+        userEmail: userEmail,
+        userName: 'User', // Would be fetched from transaction
+        paymentMethod: 'unknown', // Would be fetched from transaction
+        paymentDate: DateTime.now(),
+      );
+
+      return ChapaPaymentResult.success(
+        message: 'Receipt URL generated successfully',
+        checkoutUrl: receiptUrl, // Reuse checkoutUrl field for receipt URL
+      );
+    } catch (e) {
+      if (kDebugMode) print('❌ Receipt download error: $e');
+      return ChapaPaymentResult.error('Failed to download receipt: $e');
     }
   }
 }

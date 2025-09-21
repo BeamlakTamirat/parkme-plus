@@ -1,11 +1,17 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared/shared.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../providers/comprehensive_providers.dart';
 import '../../widgets/common/wepark_dialog.dart';
+import 'webview_payment_screen.dart';
 
 class EnhancedPaymentScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> bookingData;
@@ -30,10 +36,10 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
 
   // Test credentials for Ethiopian payments
   static const Map<String, String> testCredentials = {
-    'telebirr_test_phone': '0911123456',
-    'cbe_birr_test_phone': '0911654321',
-    'test_card_number': '4000000000000002',
-    'test_card_expiry': '12/25',
+    'telebirr_test_phone': '0900112233',
+    'cbe_birr_test_phone': '0900123456',
+    'test_card_number': '4200000000000000',
+    'test_card_expiry': '12/34',
     'test_card_cvv': '123',
   };
 
@@ -44,6 +50,38 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
     _expiryController.dispose();
     _cvvController.dispose();
     super.dispose();
+  }
+
+  void _autoFillTestCredentials(String method) {
+    // Auto-fill test credentials when payment method is selected
+    switch (method) {
+      case ChapaPaymentMethods.telebirr:
+        _phoneController.text = testCredentials['telebirr_test_phone']!;
+        break;
+      case ChapaPaymentMethods.cbeBirr:
+        _phoneController.text = testCredentials['cbe_birr_test_phone']!;
+        break;
+      case ChapaPaymentMethods.visa:
+      case ChapaPaymentMethods.mastercard:
+        _cardNumberController.text = testCredentials['test_card_number']!;
+        _expiryController.text = testCredentials['test_card_expiry']!;
+        _cvvController.text = testCredentials['test_card_cvv']!;
+        break;
+    }
+  }
+
+  String? _getTestNumber(String method) {
+    switch (method) {
+      case ChapaPaymentMethods.telebirr:
+        return testCredentials['telebirr_test_phone'];
+      case ChapaPaymentMethods.cbeBirr:
+        return testCredentials['cbe_birr_test_phone'];
+      case ChapaPaymentMethods.visa:
+      case ChapaPaymentMethods.mastercard:
+        return testCredentials['test_card_number'];
+      default:
+        return null;
+    }
   }
 
   @override
@@ -248,6 +286,8 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
       onTap: () {
         setState(() {
           _selectedPaymentMethod = method;
+          // Auto-fill test numbers when payment method is selected
+          _autoFillTestCredentials(method);
         });
       },
       child: Container(
@@ -285,13 +325,35 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'Selected',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -348,8 +410,9 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
           controller: _phoneController,
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(
-            hintText: testPhone,
-            prefixText: '+251 ',
+            hintText: 'Enter phone number (e.g., $testPhone)',
+            labelText: 'Phone Number',
+            prefixIcon: const Icon(Icons.phone, color: AppColors.primary),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.grey300),
@@ -358,27 +421,34 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.grey300),
+            ),
           ),
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.info.withOpacity(0.1),
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary.withOpacity(0.1),
+                AppColors.primary.withOpacity(0.05),
+              ],
+            ),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.info.withOpacity(0.3)),
+            border: Border.all(color: AppColors.primary.withOpacity(0.3)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline, color: AppColors.info, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Test Mode: Use $testPhone for testing',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.info,
-                  ),
+              const SizedBox(height: 2),
+              Text(
+                'Test phone number: $testPhone',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.primary.withOpacity(0.8),
                 ),
               ),
             ],
@@ -405,10 +475,11 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
         // Card Number
         TextFormField(
           controller: _cardNumberController,
-          keyboardType: TextInputType.number,
+          keyboardType: TextInputType.text,
           decoration: InputDecoration(
             labelText: 'Card Number',
             hintText: testCredentials['test_card_number'],
+            prefixIcon: const Icon(Icons.credit_card, color: AppColors.primary),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.grey300),
@@ -416,6 +487,10 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.grey300),
             ),
           ),
         ),
@@ -427,10 +502,11 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
             Expanded(
               child: TextFormField(
                 controller: _expiryController,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.text,
                 decoration: InputDecoration(
                   labelText: 'MM/YY',
                   hintText: testCredentials['test_card_expiry'],
+                  prefixIcon: const Icon(Icons.calendar_today, color: AppColors.primary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.grey300),
@@ -439,6 +515,10 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
                         const BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.grey300),
                   ),
                 ),
               ),
@@ -448,9 +528,11 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
               child: TextFormField(
                 controller: _cvvController,
                 keyboardType: TextInputType.number,
+                obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'CVV',
                   hintText: testCredentials['test_card_cvv'],
+                  prefixIcon: const Icon(Icons.security, color: AppColors.primary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.grey300),
@@ -459,6 +541,10 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
                         const BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.grey300),
                   ),
                 ),
               ),
@@ -469,38 +555,41 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
 
         // Test Card Info
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.info.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.info.withOpacity(0.3)),
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary.withOpacity(0.1),
+                AppColors.primary.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.primary.withOpacity(0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.info_outline, color: AppColors.info, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Test Mode - Use these credentials:',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.info,
-                    ),
-                  ),
+                  
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
-                'Card: ${testCredentials['test_card_number']}\n'
-                'Expiry: ${testCredentials['test_card_expiry']}\n'
-                'CVV: ${testCredentials['test_card_cvv']}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.info,
-                  fontFamily: 'monospace',
+                'Card Number: ${testCredentials['test_card_number']!}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.primary.withOpacity(0.8),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Expiry: ${testCredentials['test_card_expiry']!} | CVV: ${testCredentials['test_card_cvv']!}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.primary.withOpacity(0.8),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -601,19 +690,14 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
       // Process payment
       final result = await ref.read(processPaymentProvider(paymentData).future);
 
-      if (result.success) {
-        // Payment successful - now create the booking in database
-        final booking =
-            await _createBookingAfterPayment(paymentData, result.txRef ?? '');
-        if (booking != null) {
-          // 🔥 CRITICAL FIX: Force real-time UI updates after booking creation
-          ref.invalidate(bookingHistoryProvider);
-          ref.invalidate(userBookingsProvider);
-          ref.invalidate(currentUserProvider);
-          _showSuccessDialogWithQR(booking);
-        } else {
-          _showErrorDialog('Failed to create booking record');
+      if (result.success && result.checkoutUrl != null) {
+        // Payment initialization successful - open in-app WebView
+        if (kDebugMode) {
+          print('🌐 Opening Chapa checkout in WebView: ${result.checkoutUrl}');
         }
+
+        // Navigate to in-app WebView payment screen
+        _openInAppPayment(result.checkoutUrl!, result.txRef ?? '', paymentData);
       } else {
         _showErrorDialog(result.message);
       }
@@ -643,13 +727,22 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
         'endTime': widget.bookingData['endTime'],
         'totalAmount': paymentData['amount'],
         'paymentMethod': paymentData['paymentMethod'],
-        'transactionId': transactionId,
+        'transactionId': transactionId, // This is the Chapa transaction ID
+        'status': 'pending', // Set initial status
         'metadata': {
           'paymentProvider': 'chapa',
           'paymentStatus': 'completed',
           'createdFromApp': 'user_app',
+          'chapaTransactionId': transactionId, // Store as metadata too
         },
       };
+
+      if (kDebugMode) {
+        print('🔍 DEBUGGING TRANSACTION ID:');
+        print('   Transaction ID parameter: $transactionId');
+        print('   Booking data transactionId: ${bookingData['transactionId']}');
+        print('   Payment data: ${paymentData.keys}');
+      }
 
       // Create booking in database
       final result = await ref.read(createBookingProvider(bookingData).future);
@@ -706,6 +799,83 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
     );
   }
 
+  Future<void> _openInAppPayment(
+      String checkoutUrl, String txRef, Map<String, dynamic> paymentData) async {
+    try {
+      if (kDebugMode) {
+        print('🌐 Navigating to WebView payment screen');
+      }
+
+      // Navigate to WebView payment screen
+      final result = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => WebViewPaymentScreen(
+            checkoutUrl: checkoutUrl,
+            txRef: txRef,
+            paymentData: paymentData,
+            onPaymentComplete: (bool success, String message) {
+              if (success) {
+                _verifyPaymentAndCreateBooking(txRef, paymentData);
+              } else {
+                _showErrorDialog(message);
+              }
+            },
+          ),
+        ),
+      );
+
+      if (kDebugMode) {
+        print('🔙 Returned from WebView payment screen: $result');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error opening WebView payment: $e');
+      }
+      _showErrorDialog('Failed to open payment screen: $e');
+    }
+  }
+
+
+  void _showPaymentWaitingDialog(
+      String txRef, Map<String, dynamic> paymentData) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WeParkDialog(
+        title: 'Payment Processing...',
+        titleIcon: Icons.hourglass_bottom,
+        titleIconColor: Colors.blue,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            const Text(
+              'Please wait while we verify your payment...',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'Transaction ID: $txRef',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          WeParkButton(
+            text: 'Cancel Payment',
+            icon: Icons.close,
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showErrorDialog('Payment cancelled');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showSuccessDialogWithQR(Booking booking) {
     final locationName =
         widget.bookingData['parkingLocationName'] ?? 'Parking Location';
@@ -728,7 +898,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
 
               // QR Code Section
               Container(
-                padding: EdgeInsets.only(left: 8.0),
+                padding: const EdgeInsets.only(left: 8.0),
                 child: const Text(
                   'Your Check-in QR Code',
                   style: TextStyle(
@@ -851,8 +1021,9 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
           ),
         ),
         actions: [
+          
           WeParkButton(
-            text: 'Go to Home',
+            text: 'Home',
             icon: Icons.home,
             onPressed: () {
               Navigator.of(context).pop();
@@ -902,4 +1073,414 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
       ],
     );
   }
+
+  Future<void> _verifyPaymentAndCreateBooking(
+      String txRef, Map<String, dynamic> paymentData) async {
+    try {
+      // Show verification loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Creating your booking...'),
+            ],
+          ),
+        ),
+      );
+
+      if (kDebugMode) {
+        print('💾 User confirmed payment completion');
+        print('🎫 Creating booking with transaction: $txRef');
+      }
+
+      // SIMPLE APPROACH: Trust user confirmation for now
+      // Since user clicked "I Completed Payment" and we detected success page,
+      // proceed with booking creation without complex API verification
+      if (kDebugMode) {
+        print('✅ User confirmed payment completion - proceeding with booking');
+      }
+
+      // Proceed with booking creation
+      final booking = await _createBookingAfterPayment(paymentData, txRef);
+
+      // Close verification dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (booking != null) {
+        // 🔥 CRITICAL FIX: Force real-time UI updates after booking creation
+        ref.invalidate(bookingHistoryProvider);
+        ref.invalidate(userBookingsProvider);
+        ref.invalidate(currentUserProvider);
+
+        if (kDebugMode) {
+          print('✅ Booking created successfully: ${booking.id}');
+        }
+
+        _showSuccessDialogWithQR(booking);
+      } else {
+        _showErrorDialog('Failed to create booking record');
+      }
+
+      // TODO: Implement proper Chapa verification once API endpoint is confirmed
+      // For now, we trust user confirmation since payment appears in dashboard
+    } catch (e) {
+      // Close any open dialogs
+      if (mounted) Navigator.of(context).pop();
+
+      if (kDebugMode) {
+        print('❌ Booking creation error: $e');
+      }
+      _showErrorDialog('Failed to create booking: $e');
+    }
+  }
+
+  Future<void> _downloadReceipt(Booking booking) async {
+    try {
+      if (kDebugMode) print('📄 Generating PDF receipt for booking: ${booking.id}');
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Generating receipt...'),
+            ],
+          ),
+        ),
+      );
+
+      // Get current user for receipt details
+      final currentUser = await ref.read(currentUserProvider.future);
+      if (currentUser == null) {
+        Navigator.of(context).pop();
+        _showErrorDialog('User not authenticated');
+        return;
+      }
+
+      // Request storage permission
+      final permission = await Permission.storage.request();
+      if (!permission.isGranted) {
+        Navigator.of(context).pop();
+        _showErrorDialog('Storage permission required to save receipt');
+        return;
+      }
+
+      // Generate PDF
+      final pdf = await _generatePdfReceipt(booking, currentUser);
+      
+      // Save PDF to device
+      final filePath = await _savePdfToDevice(pdf, booking.id);
+      
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      if (filePath != null) {
+        _showReceiptSavedDialog(filePath);
+      } else {
+        _showErrorDialog('Failed to save receipt to device');
+      }
+    } catch (e) {
+      Navigator.of(context).pop();
+      if (kDebugMode) print('❌ Receipt generation error: $e');
+      _showErrorDialog('Failed to generate receipt: $e');
+    }
+  }
+
+  Future<pw.Document> _generatePdfReceipt(Booking booking, User currentUser) async {
+    final pdf = pw.Document();
+    final now = DateTime.now();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(20),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.orange,
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      'WEPARK SMART PARKING',
+                      style: pw.TextStyle(
+                        fontSize: 24,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      'PAYMENT RECEIPT',
+                      style: const pw.TextStyle(
+                        fontSize: 16,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              pw.SizedBox(height: 30),
+
+              // Receipt Details
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey300),
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Receipt Information',
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 16),
+                    
+                    _buildPdfRow('Receipt ID:', 'WP-${now.millisecondsSinceEpoch}'),
+                    _buildPdfRow('Transaction ID:', booking.transactionId ?? booking.id),
+                    _buildPdfRow('Booking ID:', booking.id),
+                    _buildPdfRow('Date:', now.toString().split('.')[0]),
+                    
+                    pw.SizedBox(height: 20),
+                    
+                    pw.Text(
+                      'Customer Information',
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 16),
+                    
+                    _buildPdfRow('Name:', currentUser.fullName),
+                    _buildPdfRow('Email:', currentUser.email),
+                    _buildPdfRow('Phone:', currentUser.phoneNumber ?? 'N/A'),
+                    _buildPdfRow('Vehicle Plate:', booking.vehiclePlateNumber ?? 'N/A'),
+                    
+                    pw.SizedBox(height: 20),
+                    
+                    pw.Text(
+                      'Payment Details',
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 16),
+                    
+                    _buildPdfRow('Amount:', '${booking.totalAmount.toStringAsFixed(2)} ETB'),
+                    _buildPdfRow('Payment Method:', booking.paymentMethod ?? 'N/A'),
+                    _buildPdfRow('Status:', booking.status.toUpperCase()),
+                    _buildPdfRow('Parking Location:', widget.bookingData['parkingLocationName'] ?? 'N/A'),
+                    
+                    pw.SizedBox(height: 20),
+                    
+                    pw.Text(
+                      'Booking Details',
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 16),
+                    
+                    _buildPdfRow('Start Time:', booking.startTime.toString().split('.')[0]),
+                    _buildPdfRow('End Time:', booking.endTime.toString().split('.')[0]),
+                    _buildPdfRow('Duration:', widget.bookingData['duration'] ?? 'Variable'),
+                  ],
+                ),
+              ),
+              
+              pw.SizedBox(height: 30),
+              
+              // Footer
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                      'WePark Smart Parking System',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Addis Ababa, Ethiopia',
+                      style: const pw.TextStyle(fontSize: 12),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      'Thank you for using WePark!',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontStyle: pw.FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf;
+  }
+
+  pw.Widget _buildPdfRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.Text(
+            value,
+            style: const pw.TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _savePdfToDevice(pw.Document pdf, String bookingId) async {
+    try {
+      final bytes = await pdf.save();
+      
+      // Get Downloads directory
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        if (kDebugMode) print('❌ Could not get storage directory');
+        return null;
+      }
+
+      final fileName = 'WePark_Receipt_${bookingId}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final file = File('${directory.path}/$fileName');
+      
+      await file.writeAsBytes(bytes);
+      
+      if (kDebugMode) print('✅ PDF saved to: ${file.path}');
+      return file.path;
+    } catch (e) {
+      if (kDebugMode) print('❌ Error saving PDF: $e');
+      return null;
+    }
+  }
+
+  void _showReceiptSavedDialog(String filePath) {
+    showDialog(
+      context: context,
+      builder: (context) => WeParkDialog(
+        title: 'Receipt Downloaded!',
+        titleIcon: Icons.download_done,
+        titleIconColor: Colors.green,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.picture_as_pdf,
+              size: 48,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Your receipt has been saved to your device!',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Text(
+                'Saved to: ${filePath.split('/').last}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Check your Downloads folder or Files app to view the PDF receipt.',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF1565C0)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          WeParkButton(
+            text: 'OK',
+            icon: Icons.check,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
 }

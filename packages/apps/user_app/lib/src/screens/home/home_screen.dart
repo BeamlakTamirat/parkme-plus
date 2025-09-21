@@ -361,7 +361,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                           ],
                         ),
-                      )).toList(),
+                      )),
                       
                       if (bookings.length > 3)
                         Container(
