@@ -180,15 +180,15 @@ class _WebViewPaymentScreenState extends ConsumerState<WebViewPaymentScreen> {
         }
         
         return AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
               Icon(
                 Icons.help_outline,
                 color: Colors.orange,
                 size: 24,
               ),
-              const SizedBox(width: 8),
-              const Text('Payment Status'),
+              SizedBox(width: 8),
+              Text('Payment Status'),
             ],
           ),
           content: Column(
