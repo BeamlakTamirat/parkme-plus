@@ -230,7 +230,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
           method: ChapaPaymentMethods.telebirr,
           title: 'Telebirr',
           subtitle: 'Pay with your Telebirr account',
-          icon: Icons.phone_android,
+          imagePath: 'assets/images/telebirr.png',
           color: Colors.orange,
         ),
         const SizedBox(height: 8),
@@ -238,7 +238,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
           method: ChapaPaymentMethods.cbeBirr,
           title: 'CBE Birr',
           subtitle: 'Pay with CBE Birr',
-          icon: Icons.account_balance,
+          imagePath: 'assets/images/cbebirr.png',
           color: Colors.blue,
         ),
 
@@ -258,7 +258,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
           method: ChapaPaymentMethods.visa,
           title: 'Visa Card',
           subtitle: 'Pay with Visa card',
-          icon: Icons.credit_card,
+          imagePath: 'assets/images/visacard.jpg',
           color: Colors.blue[800]!,
         ),
         const SizedBox(height: 8),
@@ -266,7 +266,7 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
           method: ChapaPaymentMethods.mastercard,
           title: 'Mastercard',
           subtitle: 'Pay with Mastercard',
-          icon: Icons.credit_card,
+          imagePath: 'assets/images/mastercard.png',
           color: Colors.red[700]!,
         ),
       ],
@@ -277,7 +277,8 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
     required String method,
     required String title,
     required String subtitle,
-    required IconData icon,
+    IconData? icon,
+    String? imagePath,
     required Color color,
   }) {
     final isSelected = _selectedPaymentMethod == method;
@@ -312,13 +313,35 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen> {
         child: Row(
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: imagePath != null ? Colors.grey[50] : color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: imagePath != null ? Colors.grey[300]! : color.withOpacity(0.3), 
+                  width: 1.5
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: imagePath != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        imagePath,
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                      ),
+                    )
+                  : Icon(icon, color: color, size: 32),
             ),
             const SizedBox(width: 16),
             Expanded(
