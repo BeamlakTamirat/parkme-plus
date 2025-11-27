@@ -98,17 +98,19 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk ../../../release-apks/parkme-plus-user-app.apk
           ls -lh ../../../release-apks/
           
-      - name: 🧹 Cleanup After User App Build
+      - name: 🧹 Free Up Space After User App Build
         run: |
-          cd packages/apps/user_app/android
-          ./gradlew --stop || true
-          cd ../../../..
-          # Clean Gradle cache to prevent corruption
+          echo "Stopping Gradle daemon to release file locks..."
+          (cd packages/apps/user_app/android && ./gradlew --stop) || echo "Gradle daemon was not running or failed to stop."
+          
+          echo "Removing large build directories for user_app..."
+          rm -rf packages/apps/user_app/build
           rm -rf packages/apps/user_app/android/.gradle
           rm -rf packages/apps/user_app/android/app/build
-          rm -rf ~/.gradle/caches/transforms-*
-          rm -rf ~/.gradle/caches/*/fileHashes
-          echo "Gradle daemon stopped and cache cleaned"
+          
+          echo "Cleaning global caches..."
+          rm -rf ~/.gradle/caches/
+          
           
       # ========== BUILD ADMIN APP ==========
       - name: 🔐 Create .env for Admin App
@@ -139,17 +141,19 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk ../../../release-apks/parkme-plus-admin-app.apk
           ls -lh ../../../release-apks/
           
-      - name: 🧹 Cleanup After Admin App Build
+      - name: 🧹 Free Up Space After Admin App Build
         run: |
-          cd packages/apps/admin_app/android
-          ./gradlew --stop || true
-          cd ../../../..
-          # Clean Gradle cache to prevent corruption
+          echo "Stopping Gradle daemon to release file locks..."
+          (cd packages/apps/admin_app/android && ./gradlew --stop) || echo "Gradle daemon was not running or failed to stop."
+
+          echo "Removing large build directories for admin_app..."
+          rm -rf packages/apps/admin_app/build
           rm -rf packages/apps/admin_app/android/.gradle
           rm -rf packages/apps/admin_app/android/app/build
-          rm -rf ~/.gradle/caches/transforms-*
-          rm -rf ~/.gradle/caches/*/fileHashes
-          echo "Gradle daemon stopped and cache cleaned"
+
+          echo "Cleaning global caches..."
+          rm -rf ~/.gradle/caches/
+
           
       # ========== BUILD ATTENDANT APP ==========
       - name: 🔐 Create .env for Attendant App
