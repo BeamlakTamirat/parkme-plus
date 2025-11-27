@@ -40,13 +40,13 @@ class PrimaryButton extends StatelessWidget {
           disabledForegroundColor: const Color(0xFF8E8E93),
           elevation: 0,
           shadowColor: Colors.transparent,
-          padding: padding ?? EdgeInsets.symmetric(horizontal: 24),
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
           ),
         ),
         child: isLoading
-            ? SizedBox(
+            ? const SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
@@ -60,11 +60,11 @@ class PrimaryButton extends StatelessWidget {
                 children: [
                   if (icon != null) ...[
                     icon!,
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                   ],
                   Text(
                     text,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,
@@ -120,19 +120,19 @@ class SecondaryButton extends StatelessWidget {
                 : const Color(0xFFC7C7CC),
             width: 1.5,
           ),
-          padding: padding ?? EdgeInsets.symmetric(horizontal: 24),
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
           ),
         ),
         child: isLoading
-            ? SizedBox(
+            ? const SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    const Color(0xFFFF9500),
+                    Color(0xFFFF9500),
                   ),
                 ),
               )
@@ -142,11 +142,11 @@ class SecondaryButton extends StatelessWidget {
                 children: [
                   if (icon != null) ...[
                     icon!,
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                   ],
                   Text(
                     text,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,

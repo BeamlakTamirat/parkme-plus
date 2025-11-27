@@ -7,22 +7,25 @@ plugins {
 
 android {
     namespace = "com.wepark.attendant_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
+    // Updated to NDK 29 as specified by user
     ndkVersion = "29.0.13846066"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // Core library desugaring requires Java 8+
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+        // Enable core library desugaring
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "1.8"
     }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.wepark.attendant_app"
-        // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -38,9 +41,40 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-} 
+}
+
+dependencies {
+    // Core library desugaring for modern Java APIs
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+}
 
 flutter {
     source = "../.."
+}
+
+// Fix for Flutter not finding APK - Copy APK to expected location
+afterEvaluate {
+    tasks.register<Copy>("copyDebugApk") {
+        from("build/outputs/apk/debug")
+        into("../../build/app/outputs/flutter-apk")
+        include("*.apk")
+        rename { "app-debug.apk" }
+    }
+
+    tasks.register<Copy>("copyReleaseApk") {
+        from("build/outputs/apk/release")
+        into("../../build/app/outputs/flutter-apk")
+        include("*.apk")
+        rename { "app-release.apk" }
+    }
+
+    // Automatically copy APK after assembling
+    tasks.named("assembleDebug").configure {
+        finalizedBy("copyDebugApk")
+    }
+
+    tasks.named("assembleRelease").configure {
+        finalizedBy("copyReleaseApk")
+    }
 } 
 

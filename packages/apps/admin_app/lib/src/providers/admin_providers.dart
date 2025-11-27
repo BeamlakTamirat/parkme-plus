@@ -131,13 +131,41 @@ final createUserProvider =
   }
 });
 
+/// Update user provider with comprehensive validation and real-time updates
 final updateUserProvider = FutureProvider.family<bool, User>((ref, user) async {
-  // i'd implement proper user update
   try {
-    // Placeholder - would need actual implementation
-    return false;
+    if (kDebugMode) {
+      print('🔄 Starting user update process for: ${user.fullName}');
+      print('   User ID: ${user.id}');
+      print('   Email: ${user.email}');
+      print('   Role: ${user.role}');
+      print('   Phone: ${user.phoneNumber ?? 'None'}');
+    }
+
+    final databaseService = ref.read(databaseServiceProvider);
+    
+    // Perform the actual update
+    final success = await databaseService.updateUser(user);
+    
+    if (success) {
+      if (kDebugMode) {
+        print('✅ User update completed successfully');
+      }
+      
+      // Trigger real-time UI updates
+      ref.invalidate(allUsersProvider);
+      ref.invalidate(usersByRoleProvider);
+      ref.read(refreshTriggerProvider.notifier).state++;
+      
+      return true;
+    } else {
+      throw Exception('Database update failed');
+    }
   } catch (e) {
-    return false;
+    if (kDebugMode) {
+      print('❌ Error updating user: $e');
+    }
+    rethrow; // Re-throw so the UI can handle the specific error
   }
 });
 
@@ -314,3 +342,162 @@ void refreshAllData(WidgetRef ref) {
   ref.invalidate(activeBookingsProvider);
   ref.read(refreshTriggerProvider.notifier).state++;
 }
+
+/// Delete user provider with comprehensive validation and real-time updates
+final deleteUserProvider = FutureProvider.family<bool, String>((ref, userId) async {
+  try {
+    if (kDebugMode) {
+      print('🗑️ Starting user deletion process for ID: $userId');
+    }
+
+    final databaseService = ref.read(databaseServiceProvider);
+    
+    // Step 1: Get user details before deletion for logging
+    final userData = await databaseService.getUser(userId);
+    if (userData == null) {
+      throw Exception('User not found');
+    }
+
+    final user = User.fromDocument(userData);
+
+    if (kDebugMode) {
+      print('👤 Deleting user: ${user.fullName} (${user.email}) - Role: ${user.role}');
+    }
+
+    // Step 2: Check for active bookings (prevent deletion if user has active bookings)
+    final allBookings = await databaseService.getAllBookings();
+    final userActiveBookings = allBookings
+        .where((booking) => booking.userId == userId && booking.status == 'active')
+        .toList();
+
+    if (userActiveBookings.isNotEmpty) {
+      throw Exception('Cannot delete user with ${userActiveBookings.length} active booking(s). Please complete or cancel active bookings first.');
+    }
+
+    // Step 3: Handle user role-specific cleanup
+    if (user.role == 'attendant') {
+      // Check if attendant is assigned to any locations
+      final allLocations = await databaseService.getAllParkingLocations();
+      final assignedLocations = allLocations
+          .where((location) => location.attendantId == userId)
+          .toList();
+
+      if (assignedLocations.isNotEmpty) {
+        // Unassign attendant from locations
+        for (final location in assignedLocations) {
+          final updatedLocation = location.copyWith(
+            attendantId: null,
+            updatedAt: DateTime.now(),
+          );
+          await databaseService.updateParkingLocation(updatedLocation);
+          if (kDebugMode) {
+            print('📍 Unassigned attendant from location: ${location.name}');
+          }
+        }
+      }
+    }
+
+    // Step 4: Perform the actual deletion
+    final success = await databaseService.deleteUser(userId);
+    
+    if (success) {
+      if (kDebugMode) {
+        print('✅ User deletion completed successfully');
+      }
+      
+      // Step 5: Trigger real-time UI updates
+      ref.invalidate(allUsersProvider);
+      ref.invalidate(usersByRoleProvider);
+      ref.invalidate(allParkingLocationsProvider); // In case attendant was unassigned
+      ref.read(refreshTriggerProvider.notifier).state++;
+      
+      return true;
+    } else {
+      throw Exception('Failed to delete user from database');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('❌ Error deleting user: $e');
+    }
+    rethrow;
+  }
+});
+
+/// Delete parking location provider with dependency validation and real-time updates
+final deleteParkingLocationProvider = FutureProvider.family<bool, String>((ref, locationId) async {
+  try {
+    if (kDebugMode) {
+      print('🗑️ Starting location deletion process for ID: $locationId');
+    }
+
+    final databaseService = ref.read(databaseServiceProvider);
+    
+    // Step 1: Get location details before deletion
+    final locationData = await databaseService.getParkingLocation(locationId);
+    if (locationData == null) {
+      throw Exception('Parking location not found');
+    }
+
+    final location = ParkingLocation.fromDocument(locationData);
+
+    if (kDebugMode) {
+      print('📍 Deleting location: ${location.name} (${location.address})');
+    }
+
+    // Step 2: Check for active bookings at this location
+    final allBookings = await databaseService.getAllBookings();
+    final locationActiveBookings = allBookings
+        .where((booking) => booking.parkingLocationId == locationId && 
+               (booking.status == 'active' || booking.status == 'confirmed'))
+        .toList();
+
+    if (locationActiveBookings.isNotEmpty) {
+      throw Exception('Cannot delete location with ${locationActiveBookings.length} active/confirmed booking(s). Please complete or cancel all bookings first.');
+    }
+
+    // Step 3: Check for future bookings (within next 24 hours)
+    final now = DateTime.now();
+    final tomorrow = now.add(const Duration(days: 1));
+    final futureBookings = allBookings
+        .where((booking) => 
+            booking.parkingLocationId == locationId && 
+            booking.startTime.isAfter(now) && 
+            booking.startTime.isBefore(tomorrow))
+        .toList();
+
+    if (futureBookings.isNotEmpty) {
+      throw Exception('Cannot delete location with ${futureBookings.length} upcoming booking(s) in the next 24 hours. Please reschedule or cancel these bookings first.');
+    }
+
+    // Step 4: Handle assigned attendant
+    if (location.attendantId != null) {
+      if (kDebugMode) {
+        print('👤 Location has assigned attendant: ${location.attendantId}');
+        print('ℹ️  Attendant will be unassigned but not deleted');
+      }
+    }
+
+    // Step 5: Perform the actual deletion
+    final success = await databaseService.deleteParkingLocation(locationId);
+    
+    if (success) {
+      if (kDebugMode) {
+        print('✅ Location deletion completed successfully');
+      }
+      
+      // Step 6: Trigger real-time UI updates
+      ref.invalidate(allParkingLocationsProvider);
+      ref.invalidate(allBookingsProvider); // In case any bookings were affected
+      ref.read(refreshTriggerProvider.notifier).state++;
+      
+      return true;
+    } else {
+      throw Exception('Failed to delete location from database');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('❌ Error deleting location: $e');
+    }
+    rethrow;
+  }
+});

@@ -75,7 +75,7 @@ class ProfileScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         spreadRadius: 1,
                         blurRadius: 10,
                         offset: const Offset(0, 4),
@@ -96,13 +96,13 @@ class ProfileScreen extends ConsumerWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Colors.orange.withOpacity(0.8),
-                                  Colors.deepOrange.withOpacity(0.9),
+                                  Colors.orange.withValues(alpha: 0.8),
+                                  Colors.deepOrange.withValues(alpha: 0.9),
                                 ],
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.orange.withOpacity(0.3),
+                                  color: Colors.orange.withValues(alpha: 0.3),
                                   blurRadius: 20,
                                   offset: const Offset(0, 8),
                                 ),
@@ -133,7 +133,7 @@ class ProfileScreen extends ConsumerWidget {
                                 border: Border.all(color: Colors.white, width: 3),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.blue.withOpacity(0.3),
+                                    color: Colors.blue.withValues(alpha: 0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -191,10 +191,10 @@ class ProfileScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.orange.withOpacity(0.1), Colors.orange.withOpacity(0.2)],
+                            colors: [Colors.orange.withValues(alpha: 0.1), Colors.orange.withValues(alpha: 0.2)],
                           ),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           user.role.toUpperCase(),
@@ -284,7 +284,6 @@ class ProfileScreen extends ConsumerWidget {
                         title: 'App',
                         items: [
                           _MenuItem(
-                            
                             icon: Icons.help_outline,
                             title: 'Help & Support',
                             subtitle: 'Get help and contact support',
@@ -364,12 +363,6 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showPrivacySecurity(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const _PrivacySecurityDialog(),
-    );
-  }
 
   void _showHelpSupport(BuildContext context) {
     showDialog(
@@ -389,9 +382,9 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -434,13 +427,16 @@ class ProfileScreen extends ConsumerWidget {
     ref.invalidate(currentUserProvider);
     ref.invalidate(isAuthenticatedProvider);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Signed out successfully'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    context.go('/sign-in');
+    // Check if context is still valid before using it
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Signed out successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      context.go('/sign-in');
+    }
   }
 }
 
@@ -475,7 +471,7 @@ class _MenuSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 spreadRadius: 1,
                 blurRadius: 4,
                 offset: const Offset(0, 2),
@@ -723,12 +719,14 @@ class _EditProfileDialogState extends ConsumerState<_EditProfileDialog> {
         );
 
         if (!emailResult.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(emailResult.message),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(emailResult.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
           return;
         }
       }
@@ -748,23 +746,27 @@ class _EditProfileDialogState extends ConsumerState<_EditProfileDialog> {
         ref.invalidate(currentUserProvider);
         ref.read(authStateProvider.notifier).state = DateTime.now().toIso8601String();
 
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
         throw Exception('Failed to update profile');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -923,23 +925,27 @@ class _UpdatePhoneDialogState extends ConsumerState<_UpdatePhoneDialog> {
         ref.invalidate(currentUserProvider);
         ref.read(authStateProvider.notifier).state = DateTime.now().toIso8601String();
 
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Phone number updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Phone number updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
         throw Exception('Failed to update phone number');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -1165,28 +1171,34 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       );
 
       if (result.success) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password changed successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Password changed successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.message),
+            content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
     } finally {
       if (mounted) {
         setState(() {
@@ -1365,23 +1377,27 @@ class _UpdateVehicleDialogState extends ConsumerState<_UpdateVehicleDialog> {
         ref.invalidate(currentUserProvider);
         ref.read(authStateProvider.notifier).state = DateTime.now().toIso8601String();
 
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vehicle information updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Vehicle information updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
         throw Exception('Failed to update vehicle information');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -1392,45 +1408,6 @@ class _UpdateVehicleDialogState extends ConsumerState<_UpdateVehicleDialog> {
   }
 }
 
-class _PrivacySecurityDialog extends StatelessWidget {
-  const _PrivacySecurityDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Privacy & Security'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.lock_outlined),
-            title: const Text('Data Encryption'),
-            subtitle: const Text('Your data is encrypted and secure'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.visibility_off_outlined),
-            title: const Text('Privacy Policy'),
-            subtitle: const Text('Read our privacy policy'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.security_outlined),
-            title: const Text('Security Settings'),
-            subtitle: const Text('Manage your security preferences'),
-            onTap: () {},
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
 
 class _HelpSupportDialog extends StatelessWidget {
   const _HelpSupportDialog();
@@ -1445,7 +1422,7 @@ class _HelpSupportDialog extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.email_outlined),
             title: const Text('Email Support'),
-            subtitle: const Text('wepark@gmail.com'),
+            subtitle: const Text('parkmeplus@gmail.com'),
             onTap: () {},
           ),
           ListTile(
@@ -1472,23 +1449,23 @@ class _AboutDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('About WePark'),
+      title: const Text('About ParkMe+'),
       content: const Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'WePark - Smart Parking System',
+            'ParkMe+ - Smart Parking System',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text('Version: 1.0.0'),
           SizedBox(height: 16),
           Text(
-            'WePark is a comprehensive parking management solution that helps you find, book, and manage parking spaces efficiently.',
+            'ParkMe+ is a comprehensive parking management solution that helps you find, book, and manage parking spaces efficiently.',
           ),
           SizedBox(height: 16),
-          Text('© 2024 WePark. All rights reserved.'),
+          Text('© 2024 ParkMe+. All rights reserved.'),
         ],
       ),
       actions: [

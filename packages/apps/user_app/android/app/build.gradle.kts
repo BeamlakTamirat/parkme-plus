@@ -51,3 +51,29 @@ dependencies {
 flutter {
     source = "../.."
 }
+
+// Fix for Flutter not finding APK - Copy APK to expected location
+afterEvaluate {
+    tasks.register<Copy>("copyDebugApk") {
+        from("build/outputs/apk/debug")
+        into("../../build/app/outputs/flutter-apk")
+        include("*.apk")
+        rename { "app-debug.apk" }
+    }
+
+    tasks.register<Copy>("copyReleaseApk") {
+        from("build/outputs/apk/release")
+        into("../../build/app/outputs/flutter-apk")
+        include("*.apk")
+        rename { "app-release.apk" }
+    }
+
+    // Automatically copy APK after assembling
+    tasks.named("assembleDebug").configure {
+        finalizedBy("copyDebugApk")
+    }
+
+    tasks.named("assembleRelease").configure {
+        finalizedBy("copyReleaseApk")
+    }
+}

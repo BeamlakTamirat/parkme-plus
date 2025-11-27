@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../../config/payment_config.dart';
 
-/// Chapa Payment Service for WePark
+/// Chapa Payment Service for ParkMe+
 /// Handles payment processing using Chapa payment gateway
 class ChapaPaymentService {
   static ChapaPaymentService? _instance;
@@ -81,11 +81,30 @@ class ChapaPaymentService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        if (kDebugMode) print('✅ Payment initialized successfully');
+        if (kDebugMode) {
+          print('✅ Payment initialized successfully');
+          print('🔍 Full response data structure: ${data.toString()}');
+        }
+
+        // Safe null-aware access to response data
+        final responseData = data['data'] as Map<String, dynamic>?;
+        final checkoutUrl = responseData?['checkout_url'] as String?;
+        final responseTxRef = responseData?['tx_ref'] as String?;
+        
+        // Validate required fields
+        if (checkoutUrl == null || checkoutUrl.isEmpty) {
+          if (kDebugMode) print('❌ Missing checkout_url in response');
+          return ChapaPaymentResult.error('Invalid response: missing checkout URL');
+        }
+
+        if (kDebugMode) {
+          print('🌐 Checkout URL: $checkoutUrl');
+          print('🔑 Transaction Ref: ${responseTxRef ?? txRef}');
+        }
 
         return ChapaPaymentResult.success(
-          checkoutUrl: data['data']['checkout_url'],
-          txRef: data['data']['tx_ref'],
+          checkoutUrl: checkoutUrl,
+          txRef: responseTxRef ?? txRef, // Use original txRef as fallback
           message: 'Payment initialized successfully',
         );
       } else {
@@ -108,9 +127,11 @@ class ChapaPaymentService {
     }
   }
 
-  /// Verify payment
+  /// Verify payment with enhanced security checks
   Future<ChapaPaymentResult> verifyPayment({
     required String txRef,
+    double? expectedAmount,
+    String? expectedCurrency,
   }) async {
     try {
       if (kDebugMode) print('🔍 Verifying payment: $txRef');
@@ -137,27 +158,90 @@ class ChapaPaymentService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final paymentStatus = data['data']['status']?.toString().toLowerCase();
 
-        if (kDebugMode) print('✅ Payment verified successfully');
+        if (kDebugMode) {
+          print('📡 Chapa verification response received');
+          print('📊 Verification data: ${data['data']}');
+          print('💰 Amount type: ${data['data']['amount'].runtimeType}');
+          print('💰 Amount value: ${data['data']['amount']}');
+          print('🔍 Payment Status: $paymentStatus');
+        }
 
-        return ChapaPaymentResult.success(
-          txRef: data['data']['tx_ref'],
-          status: data['data']['status'],
-          amount: data['data']['amount'],
-          currency: data['data']['currency'],
-          message: 'Payment verified successfully',
-        );
+        // CRITICAL SECURITY CHECK: Only accept "success" status
+        if (paymentStatus == 'success') {
+          if (kDebugMode) print('✅ Payment ACTUALLY verified as successful');
+          
+          // Additional security validations
+          final actualAmount = double.tryParse(data['data']['amount']?.toString() ?? '0') ?? 0.0;
+          final actualCurrency = data['data']['currency']?.toString().toUpperCase();
+          final actualTxRef = data['data']['tx_ref']?.toString();
+          
+          // Validate transaction reference matches
+          if (actualTxRef != txRef) {
+            if (kDebugMode) {
+              print('🚨 SECURITY ALERT: Transaction reference mismatch!');
+              print('   Expected: $txRef');
+              print('   Received: $actualTxRef');
+            }
+            return ChapaPaymentResult.error('Transaction reference mismatch. Security validation failed.');
+          }
+          
+          // Validate amount if provided
+          if (expectedAmount != null && (actualAmount - expectedAmount).abs() > 0.01) {
+            if (kDebugMode) {
+              print('🚨 SECURITY ALERT: Amount mismatch!');
+              print('   Expected: $expectedAmount');
+              print('   Received: $actualAmount');
+            }
+            return ChapaPaymentResult.error('Payment amount mismatch. Expected: $expectedAmount, Received: $actualAmount');
+          }
+          
+          // Validate currency if provided
+          if (expectedCurrency != null && actualCurrency != expectedCurrency.toUpperCase()) {
+            if (kDebugMode) {
+              print('🚨 SECURITY ALERT: Currency mismatch!');
+              print('   Expected: $expectedCurrency');
+              print('   Received: $actualCurrency');
+            }
+            return ChapaPaymentResult.error('Currency mismatch. Expected: $expectedCurrency, Received: $actualCurrency');
+          }
+          
+          if (kDebugMode) print('🔒 All security validations passed');
+          
+          return ChapaPaymentResult.success(
+            txRef: data['data']['tx_ref']?.toString(),
+            status: data['data']['status']?.toString(),
+            amount: data['data']['amount']?.toString(),
+            currency: data['data']['currency']?.toString(),
+            message: 'Payment verified successfully',
+          );
+        } else {
+          // Payment exists but is NOT successful (pending, failed, etc.)
+          if (kDebugMode) {
+            print('❌ Payment verification FAILED - Status: $paymentStatus');
+            print('🚨 SECURITY: Preventing unauthorized booking creation');
+          }
+          
+          return ChapaPaymentResult.error(
+            'Payment not completed. Status: $paymentStatus. Please complete your payment first.',
+          );
+        }
       } else {
         final error = jsonDecode(response.body);
-        if (kDebugMode)
+        if (kDebugMode) {
           print('❌ Payment verification failed: ${error['message']}');
+        }
 
         return ChapaPaymentResult.error(
           error['message'] ?? 'Payment verification failed',
         );
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Payment verification error: $e');
+      if (kDebugMode) {
+        print('❌ Payment verification error: $e');
+        print('🔍 Error type: ${e.runtimeType}');
+      }
       return ChapaPaymentResult.error('Payment verification failed: $e');
     }
   }
@@ -176,8 +260,9 @@ class ChapaPaymentService {
 
       final response = await http.get(url, headers: headers);
 
-      if (kDebugMode)
+      if (kDebugMode) {
         print('📡 Payment methods response: ${response.statusCode}');
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -190,8 +275,9 @@ class ChapaPaymentService {
         );
       } else {
         final error = jsonDecode(response.body);
-        if (kDebugMode)
+        if (kDebugMode) {
           print('❌ Failed to get payment methods: ${error['message']}');
+        }
 
         return ChapaPaymentResult.error(
           error['message'] ?? 'Failed to get payment methods',
@@ -214,16 +300,17 @@ class ChapaPaymentService {
     required String vehiclePlateNumber,
   }) async {
     try {
-      if (kDebugMode)
+      if (kDebugMode) {
         print('🚗 Creating parking payment for booking: $bookingId');
+      }
 
-      final txRef = 'WEPARK_${DateTime.now().millisecondsSinceEpoch}';
+      final txRef = 'PARKMEPLUS_${DateTime.now().millisecondsSinceEpoch}';
 
       // 🔥 REMOVED: Test mode simulation that was preventing real Chapa API calls
       // Now the app will make real API calls to Chapa using your actual API keys
 
       final customizations = {
-        'title': 'WePark Parking Payment',
+        'title': 'ParkMe+ Parking Payment',
       };
 
       final result = await initializePayment(
@@ -271,7 +358,7 @@ class ChapaPaymentService {
         'user_name': userName,
         'payment_method': paymentMethod,
         'payment_date': paymentDate.toIso8601String(),
-        'merchant_name': 'WePark Smart Parking',
+        'merchant_name': 'ParkMe+ Smart Parking',
         'merchant_address': 'Addis Ababa, Ethiopia',
         'status': 'completed',
         'generated_at': DateTime.now().toIso8601String(),
@@ -317,7 +404,7 @@ class ChapaPaymentService {
       // Create receipt text content
       final receiptText = '''
 ═══════════════════════════════════════
-           WEPARK SMART PARKING
+           PARKME+ SMART PARKING
               PAYMENT RECEIPT
 ═══════════════════════════════════════
 
@@ -341,7 +428,7 @@ ${receiptData['merchant_address']}
 Generated: ${DateTime.parse(receiptData['generated_at']).toString().split('.')[0]}
 
 ═══════════════════════════════════════
-Thank you for using WePark Smart Parking!
+Thank you for using ParkMe+ Smart Parking!
 ═══════════════════════════════════════
 ''';
 

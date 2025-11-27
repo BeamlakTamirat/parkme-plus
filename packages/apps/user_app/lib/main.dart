@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,54 +11,56 @@ void main() async {
 
   // Load environment variables
   try {
-    print('🔧 Loading environment variables...');
+    if (kDebugMode) print('🔧 Loading environment variables...');
     await dotenv.load(fileName: ".env");
-    print('✅ Environment variables loaded successfully');
+    if (kDebugMode) print('✅ Environment variables loaded successfully');
 
     // Verify Chapa API keys are loaded
     final testSecretKey = dotenv.env['CHAPA_SECRET_KEY_TEST'];
     final testPublicKey = dotenv.env['CHAPA_PUBLIC_KEY_TEST'];
 
     if (testSecretKey != null && testSecretKey.startsWith('CHASECK_TEST-')) {
-      print('✅ Chapa Secret Key loaded: ${testSecretKey.substring(0, 20)}...');
+      if (kDebugMode) print('✅ Chapa Secret Key loaded: ${testSecretKey.substring(0, 20)}...');
     } else {
-      print('❌ Chapa Secret Key not found or invalid format');
-      print('🔍 Current value: $testSecretKey');
+      if (kDebugMode) print('❌ Chapa Secret Key not found or invalid format');
+      if (kDebugMode) print('🔍 Current value: $testSecretKey');
     }
 
     if (testPublicKey != null && testPublicKey.startsWith('CHAPUBK_TEST-')) {
-      print('✅ Chapa Public Key loaded: ${testPublicKey.substring(0, 20)}...');
+      if (kDebugMode) print('✅ Chapa Public Key loaded: ${testPublicKey.substring(0, 20)}...');
     } else {
-      print('❌ Chapa Public Key not found or invalid format');
-      print('🔍 Current value: $testPublicKey');
+      if (kDebugMode) print('❌ Chapa Public Key not found or invalid format');
+      if (kDebugMode) print('🔍 Current value: $testPublicKey');
     }
   } catch (e) {
-    print('❌ Failed to load .env file: $e');
-    print('📁 Make sure .env file exists in the root directory');
-    print('ℹ️  App will continue with default values');
+    if (kDebugMode) print('❌ Failed to load .env file: $e');
+    if (kDebugMode) print('📁 Make sure .env file exists in the root directory');
+    if (kDebugMode) print('ℹ️  App will continue with default values');
   }
 
   // Initialize Appwrite
   try {
-    print('🚀 Initializing Appwrite...');
+    if (kDebugMode) print('🚀 Initializing Appwrite...');
     await AppwriteConfig.initialize();
-    print('✅ Appwrite initialized successfully');
+    if (kDebugMode) print('✅ Appwrite initialized successfully');
   } catch (e) {
-    print('❌ Appwrite initialization failed: $e');
-    print('📁 Make sure your .env file exists with correct Project ID');
-    print('ℹ️  App will continue but authentication will not work');
+    if (kDebugMode) print('❌ Appwrite initialization failed: $e');
+    if (kDebugMode) print('📁 Make sure your .env file exists with correct Project ID');
+    if (kDebugMode) print('ℹ️  App will continue but authentication will not work');
   }
 
   // Initialize Mapbox Maps
   try {
-    print('🗺️ Initializing Mapbox Maps...');
+    if (kDebugMode) print('🗺️ Initializing Mapbox Maps...');
     await MapboxConfig.initialize();
-    print('✅ Mapbox Maps initialized successfully');
+    if (kDebugMode) print('✅ Mapbox Maps initialized successfully');
   } catch (e) {
-    print('❌ Mapbox Maps initialization failed: $e');
-    print(
-        '📁 Make sure your .env file exists with correct Mapbox access token');
-    print('ℹ️  App will continue but maps will not work');
+    if (kDebugMode) print('❌ Mapbox Maps initialization failed: $e');
+    if (kDebugMode) {
+      print(
+          '📁 Make sure your .env file exists with correct Mapbox access token');
+    }
+    if (kDebugMode) print('ℹ️  App will continue but maps will not work');
   }
 
   // Set preferred orientations
@@ -77,6 +80,6 @@ void main() async {
   );
 
   runApp(const ProviderScope(
-    child: WeParkApp(),
+    child: ParkMePlusApp(),
   ));
 }

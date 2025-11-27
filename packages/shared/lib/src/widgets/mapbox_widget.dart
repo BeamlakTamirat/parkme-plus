@@ -318,7 +318,7 @@ class _MapboxWidgetState extends State<MapboxWidget> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
@@ -358,7 +358,7 @@ class _MapboxWidgetState extends State<MapboxWidget> {
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -392,7 +392,7 @@ class _MapboxWidgetState extends State<MapboxWidget> {
           border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -499,14 +499,14 @@ class _MapboxWidgetState extends State<MapboxWidget> {
   Widget _buildFallbackMap() {
     return CustomPaint(
       painter: _MapPatternPainter(),
-      child: Container(
+      child: SizedBox(
         width: double.infinity,
         height: double.infinity,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.map_outlined,
                 size: 48,
                 color: Colors.grey,

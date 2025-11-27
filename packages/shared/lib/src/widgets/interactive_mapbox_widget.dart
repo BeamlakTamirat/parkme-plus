@@ -217,9 +217,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
           textField: "P", // Parking symbol - more reliable than emoji
           textOffset: [0.0, 0.0], // Centered at exact coordinates
           textColor: const Color.fromARGB(255, 220, 53, 69)
-              .value, // Bootstrap danger red
+              .toARGB32(), // Bootstrap danger red
           textSize: 28.0, // Slightly smaller for cleaner look
-          textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+          textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
           textHaloWidth: 2.0, // Reduced halo
         );
 
@@ -230,7 +230,7 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
           textField: "●", // Small white center
           textOffset: [0.0, 0.0], // Centered at exact coordinates
           textColor:
-              const Color.fromARGB(255, 255, 255, 255).value, // White center
+              const Color.fromARGB(255, 255, 255, 255).toARGB32(), // White center
           textSize: 10.0, // Smaller inner circle
         );
 
@@ -240,9 +240,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
               coordinates: Position(location.longitude, location.latitude)),
           textField: location.name,
           textOffset: [0.0, -1.8], // Directly above the circle with minimal gap
-          textColor: const Color.fromARGB(255, 220, 53, 69).value,
+          textColor: const Color.fromARGB(255, 220, 53, 69).toARGB32(),
           textSize: 12.50, // Smaller for cleaner appearance
-          textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+          textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
           textHaloWidth: 1.5, // Reduced halo for cleaner look
         );
 
@@ -252,10 +252,10 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
               coordinates: Position(location.longitude, location.latitude)),
           textField: "🅿", // Parking symbol - universally recognized
           textOffset: [0.0, -0.3], // Slightly above center
-          textColor: const Color.fromARGB(255, 255, 255, 255).value, // White
+          textColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(), // White
           textSize: 18.0, // More prominent size
           textHaloColor:
-              const Color.fromARGB(255, 220, 53, 69).value, // Red halo
+              const Color.fromARGB(255, 220, 53, 69).toARGB32(), // Red halo
           textHaloWidth: 4.0, // Even thicker halo for maximum visibility
         );
 
@@ -303,9 +303,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
         textField: "●", // Large circle
         textOffset: [0.0, 0.0],
         textColor: const Color.fromARGB(120, 0, 150, 255)
-            .value, // Semi-transparent blue
+            .toARGB32(), // Semi-transparent blue
         textSize: 35.0, // Very large for outer ring
-        textHaloColor: const Color.fromARGB(50, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(50, 255, 255, 255).toARGB32(),
         textHaloWidth: 2.0,
       );
 
@@ -316,9 +316,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Position(widget.userLocationLng!, widget.userLocationLat!)),
         textField: "●", // Solid circle
         textOffset: [0.0, 0.0],
-        textColor: const Color.fromARGB(255, 0, 120, 255).value, // Solid blue
+        textColor: const Color.fromARGB(255, 0, 120, 255).toARGB32(), // Solid blue
         textSize: 15.0, // Smaller inner circle
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 2.0,
       );
 
@@ -330,7 +330,7 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
         textField: "●", // Small center
         textOffset: [0.0, 0.0],
         textColor:
-            const Color.fromARGB(255, 255, 255, 255).value, // White center
+            const Color.fromARGB(255, 255, 255, 255).toARGB32(), // White center
         textSize: 6.0, // Very small center point
       );
 
@@ -341,9 +341,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Position(widget.userLocationLng!, widget.userLocationLat!)),
         textField: "", // Clear text without emojis
         textOffset: [0.0, -3.5], // Position above the marker
-        textColor: const Color.fromARGB(255, 0, 120, 255).value,
+        textColor: const Color.fromARGB(255, 0, 120, 255).toARGB32(),
         textSize: 14.0,
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 3.0, // Strong white outline
       );
 
@@ -354,9 +354,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Position(widget.userLocationLng!, widget.userLocationLat!)),
         textField: "▲", // Up arrow
         textOffset: [0.0, -2],
-        textColor: const Color.fromARGB(200, 255, 100, 0).value, // Orange arrow
+        textColor: const Color.fromARGB(200, 255, 100, 0).toARGB32(), // Orange arrow
         textSize: 12.0,
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 2.0,
       );
 
@@ -366,9 +366,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Position(widget.userLocationLng!, widget.userLocationLat!)),
         textField: "▼", // Down arrow
         textOffset: [0.0, 2],
-        textColor: const Color.fromARGB(200, 255, 100, 0).value, // Orange arrow
+        textColor: const Color.fromARGB(200, 255, 100, 0).toARGB32(), // Orange arrow
         textSize: 12.0,
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 2.0,
       );
 
@@ -378,9 +378,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Position(widget.userLocationLng!, widget.userLocationLat!)),
         textField: "◄", // Left arrow
         textOffset: [-2, 0.0],
-        textColor: const Color.fromARGB(200, 255, 100, 0).value, // Orange arrow
+        textColor: const Color.fromARGB(200, 255, 100, 0).toARGB32(), // Orange arrow
         textSize: 12.0,
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 2.0,
       );
 
@@ -390,9 +390,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Position(widget.userLocationLng!, widget.userLocationLat!)),
         textField: "►", // Right arrow
         textOffset: [2, 0.0],
-        textColor: const Color.fromARGB(200, 255, 100, 0).value, // Orange arrow
+        textColor: const Color.fromARGB(200, 255, 100, 0).toARGB32(), // Orange arrow
         textSize: 12.0,
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 2.0,
       );
 
@@ -413,9 +413,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Position(widget.userLocationLng!, widget.userLocationLat!)),
         textField: "", // Simple X mark
         textOffset: [0.0, 0.0],
-        textColor: const Color.fromARGB(255, 255, 0, 0).value, // Red X
+        textColor: const Color.fromARGB(255, 255, 0, 0).toARGB32(), // Red X
         textSize: 20.0,
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 3.0,
       );
 
@@ -425,9 +425,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Position(widget.userLocationLng!, widget.userLocationLat!)),
         textField: "+", // Plus sign
         textOffset: [0.0, 0.0],
-        textColor: const Color.fromARGB(255, 0, 255, 0).value, // Green plus
+        textColor: const Color.fromARGB(255, 0, 255, 0).toARGB32(), // Green plus
         textSize: 18.0,
-        textHaloColor: const Color.fromARGB(255, 0, 0, 0).value,
+        textHaloColor: const Color.fromARGB(255, 0, 0, 0).toARGB32(),
         textHaloWidth: 2.0,
       );
 
@@ -515,7 +515,7 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
         final routeOutline = PolylineAnnotationOptions(
           geometry: LineString(coordinates: routePositions),
           lineColor:
-              const Color.fromARGB(255, 255, 255, 255).value, // White outline
+              const Color.fromARGB(255, 255, 255, 255).toARGB32(), // White outline
           lineWidth: 8.0, // Slightly thicker for outline effect
           lineOpacity: 0.8,
         );
@@ -524,7 +524,7 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
         final mainRouteLine = PolylineAnnotationOptions(
           geometry: LineString(coordinates: routePositions),
           lineColor:
-              const Color.fromARGB(255, 0, 123, 255).value, // Bright blue
+              const Color.fromARGB(255, 0, 123, 255).toARGB32(), // Bright blue
           lineWidth: 5.0, // Thick line for visibility
           lineOpacity: 0.9,
         );
@@ -571,10 +571,10 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
           textField: "▶", // Direction arrow
           textOffset: [0.0, 0.0],
           textColor:
-              const Color.fromARGB(255, 255, 255, 255).value, // White arrow
+              const Color.fromARGB(255, 255, 255, 255).toARGB32(), // White arrow
           textSize: 12.0,
           textHaloColor:
-              const Color.fromARGB(255, 0, 123, 255).value, // Blue halo
+              const Color.fromARGB(255, 0, 123, 255).toARGB32(), // Blue halo
           textHaloWidth: 2.0,
         );
 
@@ -607,9 +607,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
         geometry: Point(coordinates: Position(startCoord[0], startCoord[1])),
         textField: "●", // Green start point
         textOffset: [0.0, 0.0],
-        textColor: const Color.fromARGB(255, 34, 139, 34).value, // Forest green
+        textColor: const Color.fromARGB(255, 34, 139, 34).toARGB32(), // Forest green
         textSize: 18.0,
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 3.0,
       );
 
@@ -618,9 +618,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
         geometry: Point(coordinates: Position(endCoord[0], endCoord[1])),
         textField: "●", // Red end point
         textOffset: [0.0, 0.0],
-        textColor: const Color.fromARGB(255, 220, 53, 69).value, // Red
+        textColor: const Color.fromARGB(255, 220, 53, 69).toARGB32(), // Red
         textSize: 18.0,
-        textHaloColor: const Color.fromARGB(255, 255, 255, 255).value,
+        textHaloColor: const Color.fromARGB(255, 255, 255, 255).toARGB32(),
         textHaloWidth: 3.0,
       );
 
@@ -794,11 +794,11 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
   Widget _buildStyleToggleButton() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -821,11 +821,11 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
   Widget _buildExpandButton() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -866,7 +866,7 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
         });
       },
       child: Container(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withValues(alpha: 0.5),
         child: Center(
           child: Container(
             margin: const EdgeInsets.all(12),
@@ -879,7 +879,7 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -892,9 +892,9 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.orange,
-                    borderRadius: const BorderRadius.only(
+                    borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(10),
                       topRight: Radius.circular(10),
                     ),
@@ -960,7 +960,7 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
           width: isSelected ? 2 : 1,
         ),
         borderRadius: BorderRadius.circular(4),
-        color: isSelected ? Colors.orange.withOpacity(0.1) : Colors.white,
+        color: isSelected ? Colors.orange.withValues(alpha: 0.1) : Colors.white,
       ),
       child: InkWell(
         onTap: () {
@@ -991,7 +991,7 @@ class _InteractiveMapboxWidgetState extends State<InteractiveMapboxWidget> {
               ),
               if (isSelected) ...[
                 const SizedBox(height: 1),
-                Icon(
+                const Icon(
                   Icons.check,
                   color: Colors.orange,
                   size: 8,

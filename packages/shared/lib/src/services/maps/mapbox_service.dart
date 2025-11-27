@@ -94,8 +94,9 @@ class MapboxService {
                 '✅ High accuracy location: ${position.latitude}, ${position.longitude}');
           }
         } on TimeoutException {
-          if (kDebugMode)
+          if (kDebugMode) {
             print('⚠️ High accuracy timed out, trying medium accuracy...');
+          }
         }
       }
 
@@ -111,8 +112,9 @@ class MapboxService {
                 '✅ Medium accuracy location: ${position.latitude}, ${position.longitude}');
           }
         } on TimeoutException {
-          if (kDebugMode)
+          if (kDebugMode) {
             print('⚠️ Medium accuracy timed out, trying low accuracy...');
+          }
         }
       }
 

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared/shared.dart';
-import 'package:shared/src/config/appwrite_config.dart';
 import '../../providers/comprehensive_providers.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -217,7 +216,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         child: FadeTransition(
                           opacity: _titleOpacity,
                           child: const Text(
-                            'WE PARK',
+                            'ParkMe+',
                             style: TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.w900,
@@ -265,7 +264,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                   borderRadius: BorderRadius.circular(40),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
+                                      color: Colors.black.withValues(alpha: 0.3),
                                       blurRadius: 30,
                                       offset: const Offset(0, 15),
                                       spreadRadius: 5,
@@ -460,7 +459,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -476,7 +475,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             child: Container(
               height: height * 0.4,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -516,7 +515,7 @@ class ParkingLotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withValues(alpha: 0.3)
       ..strokeWidth = 1;
 
     // Draw parking spaces

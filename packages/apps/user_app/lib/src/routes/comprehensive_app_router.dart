@@ -13,7 +13,7 @@ import '../screens/history/parking_history_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/booking/active_booking_screen.dart';
 
-import '../screens/payment/enhanced_payment_screen.dart';
+import '../screens/payment/secure_payment_screen.dart';
 import '../screens/maps/maps_screen.dart';
 import '../screens/navigation/navigation_screen.dart';
 import '../screens/debug/database_debug_screen.dart';
@@ -60,7 +60,11 @@ final comprehensiveRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         name: 'home',
-        builder: (context, state) => const ComprehensiveHomeScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final initialTab = extra?['initialTab'] as int?;
+          return ComprehensiveHomeScreen(initialTab: initialTab);
+        },
       ),
 
       // Find Parking route
@@ -103,7 +107,7 @@ final comprehensiveRouterProvider = Provider<GoRouter>((ref) {
         name: 'payment',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          return EnhancedPaymentScreen(
+          return SecurePaymentScreen(
             bookingData: extra ?? {},
           );
         },

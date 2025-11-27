@@ -55,7 +55,7 @@ class ChapaService {
         'tx_ref': txRef,
         'callback_url': callbackUrl,
         'return_url': returnUrl,
-        'description': description ?? 'WePark Payment',
+        'description': description ?? 'ParkMe+ Payment',
         'meta': metadata ?? {},
       };
 
@@ -172,7 +172,7 @@ class ChapaService {
   String _generateTransactionReference() {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final uuid = _uuid.v4().substring(0, 8);
-    return 'wepark_$timestamp\_$uuid';
+    return 'wepark_${timestamp}_$uuid';
   }
 
   /// Map Chapa status to our payment status

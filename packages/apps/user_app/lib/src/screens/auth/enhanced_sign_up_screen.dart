@@ -129,7 +129,7 @@ class _EnhancedSignUpScreenState extends ConsumerState<EnhancedSignUpScreen>
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Icon(
@@ -140,7 +140,7 @@ class _EnhancedSignUpScreenState extends ConsumerState<EnhancedSignUpScreen>
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Join WePark!',
+                  'Join ParkMe+',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -152,7 +152,7 @@ class _EnhancedSignUpScreenState extends ConsumerState<EnhancedSignUpScreen>
                   'Create your account to start parking smart',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -469,7 +469,7 @@ class _EnhancedSignUpScreenState extends ConsumerState<EnhancedSignUpScreen>
                           backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,
                           elevation: 8,
-                          shadowColor: Colors.orange.withOpacity(0.3),
+                          shadowColor: Colors.orange.withValues(alpha: 0.3),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),

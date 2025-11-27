@@ -220,7 +220,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -233,7 +233,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.orange, Colors.orange.withOpacity(0.8)],
+                      colors: [Colors.orange, Colors.orange.withValues(alpha: 0.8)],
                     ),
                     shape: BoxShape.circle,
                   ),
@@ -297,7 +297,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -310,7 +310,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.orange, Colors.orange.withOpacity(0.8)],
+                      colors: [Colors.orange, Colors.orange.withValues(alpha: 0.8)],
                     ),
                     shape: BoxShape.circle,
                   ),
@@ -392,49 +392,36 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
     final spotNumber = _currentBooking?.spotNumber ?? 'N/A';
 
     Color statusColor;
-    Color bgColor;
-    Color borderColor;
     String statusText;
     String statusMessage;
     IconData statusIcon;
-
     switch (status.toLowerCase()) {
       case 'pending':
         statusColor = Colors.orange;
-        bgColor = Colors.orange[50]!;
-        borderColor = Colors.orange[200]!;
         statusText = 'Booking Confirmed';
         statusMessage = 'Space $spotNumber is reserved for you';
         statusIcon = Icons.schedule;
         break;
       case 'active':
         statusColor = Colors.green;
-        bgColor = Colors.green[50]!;
-        borderColor = Colors.green[200]!;
         statusText = 'Parking Active';
         statusMessage = 'Currently parked in space $spotNumber';
         statusIcon = Icons.check_circle;
         break;
       case 'completed':
         statusColor = Colors.blue;
-        bgColor = Colors.blue[50]!;
-        borderColor = Colors.blue[200]!;
         statusText = 'Parking Completed';
         statusMessage = 'Session ended for space $spotNumber';
         statusIcon = Icons.done_all;
         break;
       case 'expired':
         statusColor = Colors.red;
-        bgColor = Colors.red[50]!;
-        borderColor = Colors.red[200]!;
         statusText = 'Booking Expired';
         statusMessage = 'Booking for space $spotNumber has expired';
         statusIcon = Icons.error;
         break;
       default:
         statusColor = Colors.grey;
-        bgColor = Colors.grey[50]!;
-        borderColor = Colors.grey[200]!;
         statusText = 'Unknown Status';
         statusMessage = 'Booking status unknown';
         statusIcon = Icons.help;
@@ -447,15 +434,15 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            statusColor.withOpacity(0.1),
-            statusColor.withOpacity(0.05),
+            statusColor.withValues(alpha: 0.1),
+            statusColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: statusColor.withOpacity(0.1),
+            color: statusColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -471,13 +458,13 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                 end: Alignment.bottomRight,
                 colors: [
                   statusColor,
-                  statusColor.withOpacity(0.8),
+                  statusColor.withValues(alpha: 0.8),
                 ],
               ),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: statusColor.withOpacity(0.3),
+                  color: statusColor.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -507,7 +494,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                   statusMessage,
                   style: TextStyle(
                     fontSize: 15,
-                    color: statusColor.withOpacity(0.8),
+                    color: statusColor.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -520,7 +507,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: statusColor.withOpacity(0.3)),
+                border: Border.all(color: statusColor.withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -556,7 +543,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -647,7 +634,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -727,10 +714,10 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
             ),
             borderRadius: BorderRadius.circular(16),
             border:
-                Border.all(color: Colors.orange.withOpacity(0.2), width: 1.5),
+                Border.all(color: Colors.orange.withValues(alpha: 0.2), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 blurRadius: 15,
                 offset: const Offset(0, 4),
               ),
@@ -757,7 +744,7 @@ class _ActiveBookingScreenState extends ConsumerState<ActiveBookingScreen> {
                         version: QrVersions.auto,
                         size: 150.0,
                         backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
+                        dataModuleStyle: const QrDataModuleStyle(color: Colors.black),
                         errorCorrectionLevel: QrErrorCorrectLevel.M,
                       ),
                       const SizedBox(height: 12),

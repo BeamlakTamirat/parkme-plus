@@ -39,7 +39,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
       });
     } catch (e) {
       // Handle error silently - we'll show "Unknown Location" as fallback
-      print('Error loading location names: $e');
+      if (kDebugMode) print('❌ Error loading location names: $e');
     }
   }
 
@@ -420,14 +420,14 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.primary.withOpacity(0.1),
-                      AppColors.primaryLight.withOpacity(0.05),
+                      AppColors.primary.withValues(alpha: 0.1),
+                      AppColors.primaryLight.withValues(alpha: 0.05),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                 ),
                 child: Column(
                   children: [
@@ -436,7 +436,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -479,7 +479,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                             version: QrVersions.auto,
                             size: 140.0,
                             backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
+                            dataModuleStyle: const QrDataModuleStyle(color: Colors.black),
                           ),
                           const SizedBox(height: 12),
                           Container(
@@ -508,10 +508,10 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.info.withOpacity(0.1),
+                        color: AppColors.info.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border:
-                            Border.all(color: AppColors.info.withOpacity(0.3)),
+                            Border.all(color: AppColors.info.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -612,11 +612,11 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                         ),
                         decoration: BoxDecoration(
                           color:
-                              _getStatusColor(booking.status).withOpacity(0.1),
+                              _getStatusColor(booking.status).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: _getStatusColor(booking.status)
-                                .withOpacity(0.3),
+                                .withValues(alpha: 0.3),
                           ),
                         ),
                         child: Text(
@@ -646,9 +646,9 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
                 ),
                 child: const Row(
                   children: [
@@ -746,7 +746,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -777,9 +777,9 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withOpacity(0.3)),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -862,7 +862,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(width: 48),
                 Icon(
                   Icons.local_parking,
                   size: 16,
@@ -890,9 +890,9 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.05),
+                      color: Colors.grey.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                      border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -922,9 +922,9 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.05),
+                      color: Colors.orange.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1147,7 +1147,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 elevation: 2,
-                shadowColor: color.withOpacity(0.3),
+                shadowColor: color.withValues(alpha: 0.3),
               ),
             )
           : OutlinedButton.icon(
@@ -1560,7 +1560,7 @@ class _ParkingHistoryScreenState extends ConsumerState<ParkingHistoryScreen> {
           width: isSelected ? 2 : 1,
         ),
         borderRadius: BorderRadius.circular(8),
-        color: isSelected ? color.withOpacity(0.05) : Colors.white,
+        color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
       ),
       child: ListTile(
         leading: Radio<String>(

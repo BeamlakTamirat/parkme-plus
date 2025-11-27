@@ -503,7 +503,7 @@ class _SpotManagementScreenState extends ConsumerState<SpotManagementScreen> {
           color: color,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: color.withOpacity(0.7),
+            color: color.withValues(alpha: 0.7),
             width: 2,
           ),
           boxShadow: [

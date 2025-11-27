@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
   
   # ONLY ESSENTIAL DEPENDENCIES
-  appwrite: ^12.0.1
+  appwrite: ^20.2.1
   flutter_riverpod: ^2.5.1
   flutter_dotenv: ^5.1.0
   http: ^1.1.0

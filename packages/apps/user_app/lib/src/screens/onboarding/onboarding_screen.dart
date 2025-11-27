@@ -231,7 +231,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -262,7 +262,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       width: 160,
                       height: 160,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Container(
@@ -302,7 +302,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             data.description,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               height: 1.5,
             ),
             textAlign: TextAlign.center,
@@ -317,9 +317,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       width: 50,
       height: 50,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
       ),
       child: Icon(
         icon,
@@ -338,7 +338,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       decoration: BoxDecoration(
         color: _currentPage == index
             ? Colors.white
-            : Colors.white.withOpacity(0.4),
+            : Colors.white.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
       ),
     );

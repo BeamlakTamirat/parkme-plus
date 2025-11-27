@@ -103,8 +103,10 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
           forceAndroidLocationManager: false,
         );
         if (kDebugMode && position != null) {
-          print(
-              '📍 Using last known location: ${position.latitude}, ${position.longitude}');
+          if (kDebugMode) {
+            print(
+                '📍 Using last known location: ${position.latitude}, ${position.longitude}');
+          }
         }
       } catch (e) {
         if (kDebugMode) print('⚠️ Could not get last known position: $e');
@@ -113,7 +115,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
       // Method 2: If no last known position, get current location with extended timeout
       if (position == null) {
         if (kDebugMode) {
-          print('📍 Getting current location with extended timeout...');
+          if (kDebugMode) print('📍 Getting current location with extended timeout...');
         }
 
         try {
@@ -124,7 +126,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
         } on TimeoutException {
           // Method 3: Fallback to lower accuracy but faster
           if (kDebugMode) {
-            print('⚠️ High accuracy timed out, trying medium accuracy...');
+            if (kDebugMode) print('⚠️ High accuracy timed out, trying medium accuracy...');
           }
           try {
             position = await Geolocator.getCurrentPosition(
@@ -140,7 +142,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
 
       if (position == null) {
         throw Exception(
-            'Unable to get your location. Please:\n• Enable GPS/Location Services\n• Grant location permission to WePark\n• Ensure you have network connectivity\n• Try again in an open area');
+            'Unable to get your location. Please:\n• Enable GPS/Location Services\n• Grant location permission to ParkMe+\n• Ensure you have network connectivity\n• Try again in an open area');
       }
 
       if (!mounted) return; // Check again before setState
@@ -285,7 +287,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -311,7 +313,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
         margin: const EdgeInsets.all(8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.1),
+          color: Colors.orange.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.orange),
         ),
@@ -338,7 +340,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -350,7 +352,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: const Icon(Icons.route, color: Colors.green, size: 16),
@@ -393,7 +395,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -487,13 +489,15 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
         );
 
         if (kDebugMode) {
-          print('🧭 Opened navigation app with URL: $mapsUrl');
+          if (kDebugMode) print('🧭 Opened navigation app with URL: $mapsUrl');
         }
 
-        context.showSuccessNotification(
-          '🧭 Navigation started to ${_targetLocation!.name}',
-          icon: Icons.navigation,
-        );
+        if (mounted) {
+          context.showSuccessNotification(
+            '🧭 Navigation started to ${_targetLocation!.name}',
+            icon: Icons.navigation,
+          );
+        }
       } else {
         // Fallback: Open in web browser
         final webUrl =
@@ -509,12 +513,14 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
     } catch (e) {
       if (kDebugMode) print('❌ Error starting navigation: $e');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Could not start navigation: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Could not start navigation: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -549,7 +555,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(50),
               ),
               child:
@@ -679,7 +685,7 @@ class _NavigationMapWidgetState extends ConsumerState<NavigationMapWidget> {
         print('📊 Route data updated in NavigationMapWidget');
         print('📊 New route data: ${widget.routeData != null}');
         if (widget.routeData != null) {
-          print('📊 Route data keys: ${widget.routeData!.keys.toList()}');
+          if (kDebugMode) print('📊 Route data keys: ${widget.routeData!.keys.toList()}');
         }
       }
 
@@ -700,8 +706,10 @@ class _NavigationMapWidgetState extends ConsumerState<NavigationMapWidget> {
         });
 
         if (kDebugMode) {
-          print(
-              '🗺️ Loaded ${locations.length} parking locations for navigation map');
+          if (kDebugMode) {
+            print(
+                '🗺️ Loaded ${locations.length} parking locations for navigation map');
+          }
         }
       }
     } catch (e) {
@@ -764,12 +772,12 @@ class _NavigationMapWidgetState extends ConsumerState<NavigationMapWidget> {
       showExpandButton: false, // Remove expand button from navigation screen
       onLocationSelected: (lat, lng) {
         if (kDebugMode) {
-          print('📍 Map location selected: $lat, $lng');
+          if (kDebugMode) print('📍 Map location selected: $lat, $lng');
         }
       },
       onStyleChanged: (styleName) {
         if (kDebugMode) {
-          print('🎨 Navigation map style changed to: $styleName');
+          if (kDebugMode) print('🎨 Navigation map style changed to: $styleName');
         }
       },
     );

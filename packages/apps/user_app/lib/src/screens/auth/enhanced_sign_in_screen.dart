@@ -63,6 +63,9 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
     super.dispose();
   }
 
+  //  Google Sign-In - Coming Soon
+  // Temporarily commented out - will be implemented in near future
+  /*
   void _signInWithGoogle() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -71,6 +74,7 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
       ),
     );
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +136,7 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Icon(
@@ -155,7 +159,7 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
                           'Sign in to your account',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -287,7 +291,7 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
                                     backgroundColor: Colors.orange,
                                     foregroundColor: Colors.white,
                                     elevation: 8,
-                                    shadowColor: Colors.orange.withOpacity(0.3),
+                                    shadowColor: Colors.orange.withValues(alpha: 0.3),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
@@ -311,7 +315,7 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              Row(
+                              /*Row(
                                 children: [
                                   Expanded(
                                       child: Divider(color: Colors.grey[300])),
@@ -329,8 +333,11 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
                                   Expanded(
                                       child: Divider(color: Colors.grey[300])),
                                 ],
-                              ),
+                              ),*/
                               const SizedBox(height: 24),
+                              //  Google Sign-In - Coming Soon
+                              // Temporarily commented out - will be implemented in near future
+                              /* 
                               SizedBox(
                                 width: double.infinity,
                                 height: 50,
@@ -346,13 +353,16 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
                                     width: 24,
                                     height: 24,
                                     decoration: BoxDecoration(
-                                      color: Colors.red,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: const Icon(
-                                      Icons.g_mobiledata,
-                                      color: Colors.white,
-                                      size: 20,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(2.0),
+                                      child: Image.asset(
+                                        'assets/icons/google.png',
+                                        width: 20,
+                                        height: 20,
+                                        fit: BoxFit.contain,
+                                      ),
                                     ),
                                   ),
                                   label: const Text(
@@ -366,6 +376,7 @@ class _EnhancedSignInScreenState extends ConsumerState<EnhancedSignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 20),
+                              */
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [

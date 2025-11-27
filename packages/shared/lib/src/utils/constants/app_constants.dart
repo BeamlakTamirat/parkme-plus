@@ -1,18 +1,18 @@
 class AppConstants {
   // App Information
-  static const String appName = 'WePark';
+  static const String appName = 'ParkMe+';
   static const String appVersion = '1.0.0';
   static const String appDescription = 'Smart Parking Solution';
 
   // Company Information
   static const String companyName = 'Ozone Technology PLC';
-  static const String supportEmail = 'support@wepark.et';
-  static const String websiteUrl = 'https://wepark.et';
+  static const String supportEmail = 'support@parkmeplus.et';
+  static const String websiteUrl = 'https://parkmeplus.et';
 
   // URLs
-  static const String privacyPolicyUrl = 'https://wepark.et/privacy';
-  static const String termsOfServiceUrl = 'https://wepark.et/terms';
-  static const String helpCenterUrl = 'https://help.wepark.et';
+  static const String privacyPolicyUrl = 'https://parkmeplus.et/privacy';
+  static const String termsOfServiceUrl = 'https://parkmeplus.et/terms';
+  static const String helpCenterUrl = 'https://help.parkmeplus.et';
 
   // Timing Constants
   static const int bookingReminderMinutes = 15;

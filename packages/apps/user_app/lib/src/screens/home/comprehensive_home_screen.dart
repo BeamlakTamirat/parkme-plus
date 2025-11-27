@@ -10,7 +10,9 @@ import '../history/parking_history_screen.dart';
 import '../profile/profile_screen.dart';
 
 class ComprehensiveHomeScreen extends ConsumerStatefulWidget {
-  const ComprehensiveHomeScreen({super.key});
+  final int? initialTab;
+
+  const ComprehensiveHomeScreen({super.key, this.initialTab});
 
   @override
   ConsumerState<ComprehensiveHomeScreen> createState() =>
@@ -19,7 +21,13 @@ class ComprehensiveHomeScreen extends ConsumerStatefulWidget {
 
 class _ComprehensiveHomeScreenState
     extends ConsumerState<ComprehensiveHomeScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialTab ?? 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +55,7 @@ class _ComprehensiveHomeScreenState
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -106,7 +114,9 @@ class _ComprehensiveHomeScreenState
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? Colors.orange.withOpacity(0.1) : Colors.transparent,
+          color: isActive
+              ? Colors.orange.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -146,7 +156,7 @@ class _HomeContent extends ConsumerWidget {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text(
-          'WePark',
+          'ParkMe+',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -219,7 +229,7 @@ class _HomeContent extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   spreadRadius: 1,
                   blurRadius: 4,
                   offset: const Offset(0, 2),
@@ -270,7 +280,7 @@ class _HomeContent extends ConsumerWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.1),
+                              color: Colors.orange.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -360,7 +370,7 @@ class _HomeContent extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     spreadRadius: 1,
                     blurRadius: 4,
                     offset: const Offset(0, 2),
@@ -429,7 +439,7 @@ class _HomeContent extends ConsumerWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -441,7 +451,7 @@ class _HomeContent extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -511,7 +521,7 @@ class _HomeContent extends ConsumerWidget {
     return Consumer(
       builder: (context, ref, child) {
         final bookingHistoryAsync = ref.watch(bookingHistoryProvider);
-        
+
         return bookingHistoryAsync.when(
           loading: () => Container(
             width: double.infinity,
@@ -521,7 +531,7 @@ class _HomeContent extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   spreadRadius: 1,
                   blurRadius: 4,
                   offset: const Offset(0, 2),
@@ -540,7 +550,7 @@ class _HomeContent extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   spreadRadius: 1,
                   blurRadius: 4,
                   offset: const Offset(0, 2),
@@ -576,7 +586,7 @@ class _HomeContent extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       spreadRadius: 1,
                       blurRadius: 4,
                       offset: const Offset(0, 2),
@@ -614,7 +624,7 @@ class _HomeContent extends ConsumerWidget {
 
             // Show recent bookings (last 3)
             final recentBookings = bookings.take(3).toList();
-            
+
             return Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -622,7 +632,7 @@ class _HomeContent extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     spreadRadius: 1,
                     blurRadius: 4,
                     offset: const Offset(0, 2),
@@ -631,12 +641,14 @@ class _HomeContent extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  ...recentBookings.map((booking) => _buildBookingItem(booking)),
+                  ...recentBookings
+                      .map((booking) => _buildBookingItem(booking)),
                   if (bookings.length > 3)
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: TextButton(
-                        onPressed: () => onTabChanged(2), // Navigate to bookings tab
+                        onPressed: () =>
+                            onTabChanged(2), // Navigate to bookings tab
                         child: Text(
                           'View all ${bookings.length} bookings',
                           style: const TextStyle(
@@ -658,7 +670,7 @@ class _HomeContent extends ConsumerWidget {
   Widget _buildBookingItem(Booking booking) {
     Color statusColor;
     IconData statusIcon;
-    
+
     switch (booking.status) {
       case 'active':
         statusColor = Colors.green;
@@ -686,7 +698,7 @@ class _HomeContent extends ConsumerWidget {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -697,7 +709,7 @@ class _HomeContent extends ConsumerWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -743,7 +755,7 @@ class _HomeContent extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
+                  color: statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -811,9 +823,10 @@ class _HomeContent extends ConsumerWidget {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      border:
+                          Border.all(color: Colors.red.withValues(alpha: 0.3)),
                     ),
                     child: const Text(
                       'Emergency Hotline\n+251-940-926-102',
@@ -835,7 +848,6 @@ class _HomeContent extends ConsumerWidget {
     );
   }
 
-
   void _showProfile(BuildContext context) {
     // Switch to Profile tab in bottom navigation
     onTabChanged(3);
@@ -852,11 +864,13 @@ class _HomeContent extends ConsumerWidget {
       ref.invalidate(parkingLocationsProvider);
 
       // Show success message with custom notification
-      context.showSuccessNotification(
-        'Signed out successfully',
-        icon: Icons.logout,
-      );
-      context.go('/sign-in');
+      if (context.mounted) {
+        context.showSuccessNotification(
+          'Signed out successfully',
+          icon: Icons.logout,
+        );
+        context.go('/sign-in');
+      }
     }
   }
 }

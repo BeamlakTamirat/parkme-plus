@@ -266,12 +266,14 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
         icon: Icons.my_location,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to get your current location'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to get your current location'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -288,7 +290,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.location_off,
@@ -308,7 +310,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'WePark needs location services to:',
+              'ParkMe+ needs location services to:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 12),
@@ -365,6 +367,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
   }
 
   Future<bool> _showPermissionRequestDialog() async {
+    if (!mounted) return false;
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -375,7 +378,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.location_searching,
@@ -394,7 +397,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'WePark needs access to your location to show nearby parking spots and center the map on your position.',
+              'ParkMe+ needs access to your location to show nearby parking spots and center the map on your position.',
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 16),
@@ -442,7 +445,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.location_disabled,
@@ -479,7 +482,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.block, color: Colors.red, size: 24),
@@ -489,7 +492,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
           ],
         ),
         content: const Text(
-          'Location permission has been permanently denied. To use location features, please enable location permission for WePark in your device settings.',
+          'Location permission has been permanently denied. To use location features, please enable location permission for ParkMe+ in your device settings.',
         ),
         actions: [
           TextButton(
@@ -699,11 +702,11 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: _locationPermissionGranted
-                    ? Colors.green.withOpacity(0.1)
+                    ? Colors.green.withValues(alpha: 0.1)
                     : Colors.grey[100],
                 borderRadius: BorderRadius.circular(8),
                 border: _locationPermissionGranted
-                    ? Border.all(color: Colors.green.withOpacity(0.3))
+                    ? Border.all(color: Colors.green.withValues(alpha: 0.3))
                     : null,
               ),
               child: _isLoadingLocation
@@ -751,7 +754,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -1286,7 +1289,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1347,7 +1350,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1505,7 +1508,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -1872,12 +1875,14 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                         lastDate: DateTime.now().add(const Duration(days: 30)),
                       );
                       if (date != null) {
+                        if (!mounted) return;
                         final time = await showTimePicker(
+                          // ignore: use_build_context_synchronously
                           context: context,
                           initialTime:
                               TimeOfDay.fromDateTime(selectedStartTime),
                         );
-                        if (time != null) {
+                        if (time != null && mounted) {
                           setState(() {
                             selectedStartTime = DateTime(
                               date.year,
@@ -1935,11 +1940,13 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                         lastDate: DateTime.now().add(const Duration(days: 30)),
                       );
                       if (date != null) {
+                        if (!mounted) return;
                         final time = await showTimePicker(
+                          // ignore: use_build_context_synchronously
                           context: context,
                           initialTime: TimeOfDay.fromDateTime(selectedEndTime),
                         );
-                        if (time != null) {
+                        if (time != null && mounted) {
                           final newEndTime = DateTime(
                             date.year,
                             date.month,
@@ -1957,13 +1964,16 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                               selectedEndTime = newEndTime;
                             });
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'End time must be at least 30 minutes after start time'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            if (mounted) {
+                              // ignore: use_build_context_synchronously
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'End time must be at least 30 minutes after start time'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           }
                         }
                       }
@@ -1994,7 +2004,7 @@ class _FindParkingScreenState extends ConsumerState<FindParkingScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(

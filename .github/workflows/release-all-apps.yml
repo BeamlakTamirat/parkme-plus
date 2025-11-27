@@ -1,0 +1,285 @@
+name: 🚀 Release All Apps
+
+on:
+  # Trigger on version tags (e.g., v1.0.0, v1.2.3)
+  push:
+    tags:
+      - 'v*'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build-all-apps:
+    name: 📦 Build All 3 Apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: ☕ Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+          
+      - name: 🐦 Setup Flutter 3.32.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.5'
+          channel: 'stable'
+          cache: true
+          
+      - name: 🔧 Disable Flutter Analytics
+        run: flutter config --no-analytics
+        
+      - name: 📦 Install Melos
+        run: dart pub global activate melos 2.9.0
+        
+      - name: 🧹 Clean All Packages
+        run: |
+          cd packages/apps/user_app && flutter clean
+          cd ../admin_app && flutter clean
+          cd ../attendant_app && flutter clean
+        
+      - name: 🔍 Flutter Doctor
+        run: flutter doctor -v
+        
+      - name: 📱 Accept Android Licenses
+        run: yes | flutter doctor --android-licenses || true
+        
+      - name: 🔗 Fix AndroidManifest Paths
+        run: |
+          cd packages/apps/user_app/android && ln -sf app/src/main/AndroidManifest.xml AndroidManifest.xml
+          cd ../../admin_app/android && ln -sf app/src/main/AndroidManifest.xml AndroidManifest.xml
+          cd ../../attendant_app/android && ln -sf app/src/main/AndroidManifest.xml AndroidManifest.xml
+        
+      - name: 🔧 Bootstrap Monorepo
+        run: melos bootstrap
+        
+      # ========== BUILD USER APP ==========
+      - name: 🔐 Create .env for User App
+        working-directory: packages/apps/user_app
+        run: |
+          cat > .env << EOF
+          APPWRITE_ENDPOINT=${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID=${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY=${{ secrets.APPWRITE_API_KEY }}
+          MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
+          MAPBOX_STYLE_URL=mapbox://styles/mapbox/streets-v12
+          USE_MAPBOX=true
+          CHAPA_SECRET_KEY_TEST=${{ secrets.CHAPA_SECRET_KEY_TEST }}
+          CHAPA_PUBLIC_KEY_TEST=${{ secrets.CHAPA_PUBLIC_KEY_TEST }}
+          APP_NAME=ParkMe+
+          ENVIRONMENT=production
+          DEBUG_MODE=false
+          EOF
+          
+      - name: 🏗️ Build User App APK
+        working-directory: packages/apps/user_app
+        timeout-minutes: 40
+        env:
+          GRADLE_OPTS: -Xmx6144m -XX:MaxMetaspaceSize=2048m -XX:+UseG1GC
+        run: |
+          flutter pub get
+          flutter build apk --release --target-platform android-arm64 --tree-shake-icons
+          mkdir -p ../../../release-apks
+          cp build/app/outputs/flutter-apk/app-release.apk ../../../release-apks/parkme-plus-user-app.apk
+          ls -lh ../../../release-apks/
+          
+      - name: 🧹 Cleanup After User App Build
+        run: |
+          cd packages/apps/user_app/android
+          ./gradlew --stop || true
+          cd ../../../..
+          # Clean Gradle cache to prevent corruption
+          rm -rf packages/apps/user_app/android/.gradle
+          rm -rf packages/apps/user_app/android/app/build
+          rm -rf ~/.gradle/caches/transforms-*
+          rm -rf ~/.gradle/caches/*/fileHashes
+          echo "Gradle daemon stopped and cache cleaned"
+          
+      # ========== BUILD ADMIN APP ==========
+      - name: 🔐 Create .env for Admin App
+        working-directory: packages/apps/admin_app
+        run: |
+          cat > .env << EOF
+          APPWRITE_ENDPOINT=${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID=${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY=${{ secrets.APPWRITE_API_KEY }}
+          MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
+          MAPBOX_STYLE_URL=mapbox://styles/mapbox/streets-v12
+          USE_MAPBOX=true
+          CHAPA_SECRET_KEY_TEST=${{ secrets.CHAPA_SECRET_KEY_TEST }}
+          CHAPA_PUBLIC_KEY_TEST=${{ secrets.CHAPA_PUBLIC_KEY_TEST }}
+          APP_NAME=ParkMe+
+          ENVIRONMENT=production
+          DEBUG_MODE=false
+          EOF
+          
+      - name: 🏗️ Build Admin App APK
+        working-directory: packages/apps/admin_app
+        timeout-minutes: 40
+        env:
+          GRADLE_OPTS: -Xmx6144m -XX:MaxMetaspaceSize=2048m -XX:+UseG1GC
+        run: |
+          flutter pub get
+          flutter build apk --release --target-platform android-arm64 --tree-shake-icons
+          cp build/app/outputs/flutter-apk/app-release.apk ../../../release-apks/parkme-plus-admin-app.apk
+          ls -lh ../../../release-apks/
+          
+      - name: 🧹 Cleanup After Admin App Build
+        run: |
+          cd packages/apps/admin_app/android
+          ./gradlew --stop || true
+          cd ../../../..
+          # Clean Gradle cache to prevent corruption
+          rm -rf packages/apps/admin_app/android/.gradle
+          rm -rf packages/apps/admin_app/android/app/build
+          rm -rf ~/.gradle/caches/transforms-*
+          rm -rf ~/.gradle/caches/*/fileHashes
+          echo "Gradle daemon stopped and cache cleaned"
+          
+      # ========== BUILD ATTENDANT APP ==========
+      - name: 🔐 Create .env for Attendant App
+        working-directory: packages/apps/attendant_app
+        run: |
+          cat > .env << EOF
+          APPWRITE_ENDPOINT=${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID=${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY=${{ secrets.APPWRITE_API_KEY }}
+          MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
+          MAPBOX_STYLE_URL=mapbox://styles/mapbox/streets-v12
+          USE_MAPBOX=true
+          CHAPA_SECRET_KEY_TEST=${{ secrets.CHAPA_SECRET_KEY_TEST }}
+          CHAPA_PUBLIC_KEY_TEST=${{ secrets.CHAPA_PUBLIC_KEY_TEST }}
+          APP_NAME=ParkMe+
+          ENVIRONMENT=production
+          DEBUG_MODE=false
+          EOF
+          
+      - name: 🏗️ Build Attendant App APK
+        working-directory: packages/apps/attendant_app
+        timeout-minutes: 40
+        env:
+          GRADLE_OPTS: -Xmx6144m -XX:MaxMetaspaceSize=2048m -XX:+UseG1GC
+        run: |
+          flutter pub get
+          flutter build apk --release --target-platform android-arm64 --tree-shake-icons
+          cp build/app/outputs/flutter-apk/app-release.apk ../../../release-apks/parkme-plus-attendant-app.apk
+          ls -lh ../../../release-apks/
+          
+      # ========== VERIFY ALL APKS ==========
+      - name: ✅ Verify All APKs Built
+        run: |
+          echo "📦 Checking all APK files..."
+          ls -lh release-apks/
+          
+          if [ ! -f "release-apks/parkme-plus-user-app.apk" ]; then
+            echo "❌ User App APK not found!"
+            exit 1
+          fi
+          
+          if [ ! -f "release-apks/parkme-plus-admin-app.apk" ]; then
+            echo "❌ Admin App APK not found!"
+            exit 1
+          fi
+          
+          if [ ! -f "release-apks/parkme-plus-attendant-app.apk" ]; then
+            echo "❌ Attendant App APK not found!"
+            exit 1
+          fi
+          
+          echo "✅ All 3 APKs successfully built!"
+          echo ""
+          echo "📊 APK Sizes:"
+          du -h release-apks/*.apk
+          
+      # ========== CREATE GITHUB RELEASE ==========
+      - name: 🎉 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ParkMe Plus ${{ github.ref_name }}
+          body: |
+            #  🅿️arkMe Plus Release ${{ github.ref_name }}
+            
+            ## 📱 What's Included
+            
+            This release contains **3 Android APK files**:
+            
+            ### 🚗 **User App** (`parkme-plus-user-app.apk`)
+            - Find and book parking spots
+            - Real-time availability on maps
+            - Pay with Telebirr, CBE Birr, cards and more payment options
+            - QR code check-in/out
+            - Booking history
+            
+            ### 🖥️ **Admin App** (`parkme-plus-admin-app.apk`)
+            - Manage parking locations
+            - Monitor revenue and analytics
+            - User management
+            - Real-time dashboard
+            - Booking oversight
+            
+            ### 📲 **Attendant App** (`parkme-plus-attendant-app.apk`)
+            - QR code scanner for check-in/out
+            - Spot management
+            - Booking verification
+            - Tablet-optimized interface
+            
+            ## 📥 Installation Instructions
+            
+            1. **Download** the APK file for your app
+            2. **Enable** "Install from Unknown Sources" on your Android device
+            3. **Open** the downloaded APK file
+            4. **Follow** the installation prompts
+            5. **Launch** the app and enjoy!
+            
+            ## 🔧 Technical Details
+            
+            - **Flutter Version:** 3.32.5
+            - **Build Type:** Release APK (Universal)
+            - **Min Android Version:** 5.0 (API 21)
+            - **Target Android Version:** 14 (API 34)
+            
+            ## 🐛 Known Issues
+            
+            Please report any bugs at: https://github.com/BeamlakTamirat/parkme-plus/issues
+            
+            ---
+            
+            **Built with ❤️ in Ethiopia : @beamlak**
+          draft: false
+          prerelease: false
+          files: |
+            release-apks/parkme-plus-user-app.apk
+            release-apks/parkme-plus-admin-app.apk
+            release-apks/parkme-plus-attendant-app.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: 📊 Build Summary
+        run: |
+          echo "### 🎉 Release Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Flutter:** 3.32.5" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 APKs Built:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ User App (parkme-plus-user-app.apk)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Admin App (parkme-plus-admin-app.apk)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Attendant App (parkme-plus-attendant-app.apk)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Release URL:** https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

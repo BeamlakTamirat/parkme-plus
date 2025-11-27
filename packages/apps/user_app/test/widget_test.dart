@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:user_app/src/app.dart';
 
 void main() {
-  testWidgets('WePark app smoke test', (WidgetTester tester) async {
+  testWidgets('ParkMe+ app smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: WeParkApp(),
+        child: ParkMePlusApp(),
       ),
     );
 
-    expect(find.text('WePark'), findsOneWidget);
+    expect(find.text('ParkMe+'), findsOneWidget);
   });
 }

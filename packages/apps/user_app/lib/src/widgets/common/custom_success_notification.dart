@@ -113,7 +113,7 @@ class _SuccessNotificationWidgetState
               child: Material(
                 elevation: 8,
                 borderRadius: BorderRadius.circular(16),
-                shadowColor: AppColors.success.withOpacity(0.3),
+                shadowColor: AppColors.success.withValues(alpha: 0.3),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -121,14 +121,14 @@ class _SuccessNotificationWidgetState
                     gradient: LinearGradient(
                       colors: [
                         AppColors.success,
-                        AppColors.success.withOpacity(0.8),
+                        AppColors.success.withValues(alpha: 0.8),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.success.withOpacity(0.3),
+                        color: AppColors.success.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -139,7 +139,7 @@ class _SuccessNotificationWidgetState
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -165,7 +165,7 @@ class _SuccessNotificationWidgetState
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(

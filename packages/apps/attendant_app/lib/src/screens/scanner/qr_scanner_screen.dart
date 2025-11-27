@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,7 +50,7 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
   }
 
   Future<void> _initializeCamera() async {
-    print('📷 Initializing camera...');
+    if (kDebugMode) print('📷 Initializing camera...');
 
     // Request camera permission
     final permission = await Permission.camera.request();
@@ -66,9 +67,9 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
         torchEnabled: false,
       );
 
-      print('✅ Camera initialized successfully');
+      if (kDebugMode) print('✅ Camera initialized successfully');
     } else {
-      print('❌ Camera permission denied');
+      if (kDebugMode) print('❌ Camera permission denied');
     }
   }
 
@@ -114,12 +115,12 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
     });
 
     try {
-      print('🔍 Processing QR code: $qrCode');
+      if (kDebugMode) print('🔍 Processing QR code: $qrCode');
 
       // Parse QR code - expecting format: "booking:{bookingId}"
       if (qrCode.startsWith('booking:')) {
         final bookingId = qrCode.substring(8);
-        print('📋 Booking ID extracted: $bookingId');
+        if (kDebugMode) print('📋 Booking ID extracted: $bookingId');
 
         // Fetch booking details
         final databaseService = ref.read(databaseServiceProvider);
@@ -137,7 +138,7 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
             'Invalid QR Code', 'QR code must start with "booking:" format.');
       }
     } catch (e) {
-      print('❌ Error processing QR code: $e');
+      if (kDebugMode) print('❌ Error processing QR code: $e');
       _showErrorDialog('Processing Error', 'Failed to process QR code: $e');
     } finally {
       if (mounted) {
@@ -149,9 +150,9 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
   }
 
   Future<void> _handleBookingAction(Booking booking) async {
-    print('🎫 Processing booking: ${booking.id}');
-    print('   Status: ${booking.status}');
-    print('   Payment: ${booking.paymentStatus}');
+    if (kDebugMode) print('🎫 Processing booking: ${booking.id}');
+    if (kDebugMode) print('   Status: ${booking.status}');
+    if (kDebugMode) print('   Payment: ${booking.paymentStatus}');
 
     // Check if booking belongs to this attendant's location
     final currentLocation = await ref.read(attendantLocationProvider.future);
@@ -217,16 +218,18 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen>
       final now = DateTime.now();
       if (now.isAfter(booking.endTime!)) {
         // Show warning but allow check-in
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Warning: This booking was scheduled to end at ${booking.formattedEndTime}. '
-              'Additional charges may apply for overtime parking.',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Warning: This booking was scheduled to end at ${booking.formattedEndTime}. '
+                'Additional charges may apply for overtime parking.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 5),
             ),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+          );
+        }
       }
     }
 

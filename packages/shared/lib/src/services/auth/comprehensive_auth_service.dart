@@ -97,8 +97,9 @@ class ComprehensiveAuthService {
         try {
           await AppwriteConfig.account.deleteSessions();
         } catch (e) {
-          if (kDebugMode)
+          if (kDebugMode) {
             print('⚠️ Failed to clean up session after database error');
+          }
         }
         return ComprehensiveAuthResult.error(
             'Failed to save user profile. Please try again.');
@@ -111,7 +112,7 @@ class ComprehensiveAuthService {
 
       return ComprehensiveAuthResult.success(
         user: user,
-        message: 'Account created successfully! Welcome to WePark!',
+        message: 'Account created successfully! Welcome to ParkMe +',
       );
     } on AppwriteException catch (e) {
       if (kDebugMode) print('❌ Signup error: ${e.message}');
@@ -136,8 +137,9 @@ class ComprehensiveAuthService {
     String? vehicleColor,
   }) async {
     try {
-      if (kDebugMode)
+      if (kDebugMode) {
         print('👨‍💼 Starting admin user creation for: $email (role: $role)');
+      }
 
       // Validate inputs
       if (!_isValidEmail(email)) {
@@ -163,8 +165,9 @@ class ComprehensiveAuthService {
         name: fullName.trim(),
       );
 
-      if (kDebugMode)
+      if (kDebugMode) {
         print('✅ Appwrite account created by admin: ${appwriteUser.$id}');
+      }
 
       // 🔐 SKIP session creation - admin stays logged in
       // This is the key difference from regular signUp
@@ -193,9 +196,10 @@ class ComprehensiveAuthService {
         // If database save fails, we should delete the Appwrite account
         // But we can't use deleteSessions() because we didn't create a session
         // We'll need to use the Users API to delete the account
-        if (kDebugMode)
+        if (kDebugMode) {
           print(
               '❌ Database save failed, Appwrite account created but not saved to DB');
+        }
         return ComprehensiveAuthResult.error(
             'Failed to save user profile. Appwrite account created but not linked.');
       }
@@ -283,8 +287,9 @@ class ComprehensiveAuthService {
         try {
           await AppwriteConfig.account.deleteSessions();
         } catch (e) {
-          if (kDebugMode)
+          if (kDebugMode) {
             print('⚠️ Failed to clean up session after database error');
+          }
         }
         return ComprehensiveAuthResult.error(
             'Failed to save user profile. Please try again.');

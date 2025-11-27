@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,13 +10,13 @@ void main() async {
 
   // Initialize Appwrite
   try {
-    print('🚀 Initializing Appwrite for Admin App...');
+    if (kDebugMode) print('🚀 Initializing Appwrite for Admin App...');
     await AppwriteConfig.initialize();
-    print('✅ Appwrite initialized successfully');
+    if (kDebugMode) print('✅ Appwrite initialized successfully');
   } catch (e) {
-    print('❌ Appwrite initialization failed: $e');
-    print('📁 Make sure your .env file exists with correct Project ID');
-    print('ℹ️  App will continue but authentication will not work');
+    if (kDebugMode) print('❌ Appwrite initialization failed: $e');
+    if (kDebugMode) print('📁 Make sure your .env file exists with correct Project ID');
+    if (kDebugMode) print('ℹ️  App will continue but authentication will not work');
   }
 
   // Set preferred orientations

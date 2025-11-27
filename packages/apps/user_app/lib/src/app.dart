@@ -4,14 +4,14 @@ import 'routes/comprehensive_app_router.dart';
 import 'providers/comprehensive_providers.dart';
 import 'package:shared/shared.dart';
 
-class WeParkApp extends ConsumerStatefulWidget {
-  const WeParkApp({super.key});
+class ParkMePlusApp extends ConsumerStatefulWidget {
+  const ParkMePlusApp({super.key});
 
   @override
-  ConsumerState<WeParkApp> createState() => _WeParkAppState();
+  ConsumerState<ParkMePlusApp> createState() => _ParkMePlusAppState();
 }
 
-class _WeParkAppState extends ConsumerState<WeParkApp> {
+class _ParkMePlusAppState extends ConsumerState<ParkMePlusApp> {
   @override
   void initState() {
     super.initState();
@@ -29,7 +29,7 @@ class _WeParkAppState extends ConsumerState<WeParkApp> {
     final router = ref.watch(comprehensiveRouterProvider);
 
     return MaterialApp.router(
-      title: 'WePark',
+      title: 'ParkMe+',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.orange,

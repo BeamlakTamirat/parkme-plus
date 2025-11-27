@@ -1,6 +1,6 @@
 {
-    "name": "admin_app",
-    "short_name": "admin_app",
+    "name": "ParkMe+ Admin",
+    "short_name": "ParkMe+ Admin",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

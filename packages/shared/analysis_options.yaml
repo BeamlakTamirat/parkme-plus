@@ -1,0 +1,21 @@
+# Analysis options for shared package
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Disable avoid_print for logger classes and debug utilities
+    avoid_print: false
+    
+    # Keep other important rules enabled
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    unnecessary_null_checks: true
+    
+analyzer:
+  errors:
+    # Suppress deprecated member use warnings for Appwrite SDK migration
+    deprecated_member_use: ignore
+    
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"

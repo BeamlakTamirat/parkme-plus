@@ -10,7 +10,7 @@ class AdminApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'WePark Admin',
+      title: 'ParkMePlus Admin',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       theme: ThemeData(

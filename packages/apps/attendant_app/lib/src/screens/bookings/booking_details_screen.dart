@@ -80,7 +80,7 @@ class BookingDetailsScreen extends ConsumerWidget {
         children: [
           // Status Card
           Card(
-            color: _getStatusColor(booking.status).withOpacity(0.1),
+            color: _getStatusColor(booking.status).withValues(alpha: 0.1),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(

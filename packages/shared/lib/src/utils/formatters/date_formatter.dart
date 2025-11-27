@@ -124,7 +124,7 @@ class DateFormatter {
 
   /// Check if date is tomorrow
   static bool isTomorrow(DateTime date) {
-    final tomorrow = DateTime.now().add(Duration(days: 1));
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
     return date.year == tomorrow.year &&
         date.month == tomorrow.month &&
         date.day == tomorrow.day;

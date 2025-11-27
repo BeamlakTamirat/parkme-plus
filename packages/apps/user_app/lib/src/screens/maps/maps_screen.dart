@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared/shared.dart';
@@ -38,7 +39,7 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error loading parking locations: $e');
+      if (kDebugMode) print('❌ Error loading parking locations: $e');
       setState(() {
         _isLoading = false;
       });
@@ -97,7 +98,7 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
+                          color: Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -139,8 +140,8 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: location.hasAvailableSpots
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.red.withOpacity(0.1),
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: location.hasAvailableSpots
@@ -332,17 +333,17 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
                 parkingLocations: _parkingLocations,
                 onLocationSelected: (lat, lng) {
                   // Handle location selection differently for interactive map
-                  print('📍 Location selected: $lat, $lng');
+                  if (kDebugMode) print('📍 Location selected: $lat, $lng');
                 },
                 showMarkers: true,
                 showCurrentLocation: true,
                 showZoomControls: true,
                 showStyleToggle: true, // Enable style toggle
                 onStyleChanged: (styleName) {
-                  print(' Maps screen style changed to: $styleName');
+                  if (kDebugMode) print(' Maps screen style changed to: $styleName');
                 },
                 onExpandChanged: (isExpanded) {
-                  print(' Maps screen expansion state: $isExpanded');
+                  if (kDebugMode) print(' Maps screen expansion state: $isExpanded');
                   // Maps screen doesn't need expansion for now
                 },
               ),
@@ -373,7 +374,7 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           spreadRadius: 1,
                           blurRadius: 4,
                           offset: const Offset(0, -2),
@@ -432,7 +433,7 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.orange.withOpacity(0.1) : Colors.white,
+        color: isSelected ? Colors.orange.withValues(alpha: 0.1) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected ? Colors.orange : Colors.grey[200]!,
@@ -440,7 +441,7 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -451,7 +452,7 @@ class _MapsScreenState extends ConsumerState<MapsScreen> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
+            color: Colors.orange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(

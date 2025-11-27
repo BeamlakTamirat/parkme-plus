@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/attendant_providers.dart';
@@ -432,7 +433,7 @@ class _EmergencyManagementSheetState
         ),
       );
 
-      print('📞 Making call to: $number');
+      if (kDebugMode) print('📞 Making call to: $number');
     } catch (e) {
       _showErrorSnackBar('Failed to make call: $e');
     }
@@ -458,7 +459,7 @@ class _EmergencyManagementSheetState
         ),
       );
 
-      print('💬 Sending SMS to: $number');
+      if (kDebugMode) print('💬 Sending SMS to: $number');
     } catch (e) {
       _showErrorSnackBar('Failed to send SMS: $e');
     }
@@ -507,8 +508,8 @@ class _EmergencyManagementSheetState
       final location = await ref.read(attendantLocationProvider.future);
 
       // This would send notifications to management
-      print('🚨 SOS Alert sent by: ${currentUser?.fullName}');
-      print('📍 Location: ${location?.name}');
+      if (kDebugMode) print('🚨 SOS Alert sent by: ${currentUser?.fullName}');
+      if (kDebugMode) print('📍 Location: ${location?.name}');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -530,8 +531,8 @@ class _EmergencyManagementSheetState
       final location = await ref.read(attendantLocationProvider.future);
 
       // In a real app, this would contact security
-      print('🛡️ Security requested by: ${currentUser?.fullName}');
-      print('📍 Location: ${location?.name}');
+      if (kDebugMode) print('🛡️ Security requested by: ${currentUser?.fullName}');
+      if (kDebugMode) print('📍 Location: ${location?.name}');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -822,13 +823,13 @@ class _IncidentReportFormState extends ConsumerState<IncidentReportForm> {
       final location = await ref.read(attendantLocationProvider.future);
 
       // In a real app, this would save to database and notify management
-      print('📝 Incident Report Submitted:');
-      print('   Type: ${_getTypeLabel(selectedType)}');
-      print('   Location: ${_locationController.text}');
-      print('   Description: ${_descriptionController.text}');
-      print('   Urgent: $isUrgent');
-      print('   Reported by: ${currentUser?.fullName}');
-      print('   Site: ${location?.name}');
+      if (kDebugMode) print('📝 Incident Report Submitted:');
+      if (kDebugMode) print('   Type: ${_getTypeLabel(selectedType)}');
+      if (kDebugMode) print('   Location: ${_locationController.text}');
+      if (kDebugMode) print('   Description: ${_descriptionController.text}');
+      if (kDebugMode) print('   Urgent: $isUrgent');
+      if (kDebugMode) print('   Reported by: ${currentUser?.fullName}');
+      if (kDebugMode) print('   Site: ${location?.name}');
 
       if (mounted) {
         // Clear form

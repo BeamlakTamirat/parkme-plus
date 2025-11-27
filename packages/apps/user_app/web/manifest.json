@@ -1,6 +1,6 @@
 {
-    "name": "user_app",
-    "short_name": "user_app",
+    "name": "ParkMe Plus",
+    "short_name": "ParkMe Plus",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

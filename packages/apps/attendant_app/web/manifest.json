@@ -1,6 +1,6 @@
 {
-    "name": "attendant_app",
-    "short_name": "attendant_app",
+    "name": "ParkMe+ Attendant",
+    "short_name": "ParkMe+ Attendant",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
