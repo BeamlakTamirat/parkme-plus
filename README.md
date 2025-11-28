@@ -572,9 +572,9 @@ flutter build web --release
 ## 📸 Screenshots
 
 
-| User App | Admin Dashboard | Attendant App |
-|----------|----------------|---------------|
-| ![User](screenshots/user app/photo_9_2025-11-28_22-52-08.jpg) | ![Admin](screenshots/admin app/photo_6_2025-11-28_23-12-18.jpg) | ![Attendant](screenshots/attendant app/photo_5_2025-11-28_23-15-02.jpg) |
+ <img width="849" height="259" alt="image" src="https://github.com/user-attachments/assets/0abdc50f-af4e-4efa-9ab1-a0f38ccf96ed" />
+
+ 
 
 ## 🤝 Contributing
 
