@@ -1,5 +1,5 @@
 name: we_park_system
-repository: https://github.com/your-org/we-park-system
+repository: https://github.com/BeamlakTamirat/parkme-plus.git
 
 packages:
   - packages/**

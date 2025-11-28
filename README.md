@@ -19,7 +19,7 @@
 
 ### 🚀 **Download Latest Release**
 
-<a href="https://github.com/OzoneTechnologyDevelopment/parkme-plus/releases">
+<a href="https://github.com/BeamlakTamirat/parkme-plus/releases">
   <img src="https://img.shields.io/badge/📱%20Download%20Latest%20Release-FF9500?style=for-the-badge&logo=github&logoColor=white&labelColor=FF9500&color=white" alt="Download Latest Release" />
 </a>
 
@@ -145,7 +145,7 @@ dart pub global activate melos
 <br>
 
 ```bash
-git clone https://github.com/your-org/parkme-plus.git
+git clone https://github.com/BeamlakTamirat/parkme-plus.git
 cd wepark
 melos bootstrap
 ```
@@ -590,6 +590,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **Built with ❤️ in Ethiopia**
 
-[Report Bug](https://github.com/beamlaktamirat1/parkme-plus/issues) • [Request Feature](https://github.com/beamlaktamirat1/parkme-plus/issues) • [Documentation](https://github.com/beamlaktamirat1/parkme-plus)
+[Report Bug](https://github.com/BeamlakTamirat/parkme-plus/issues) • [Request Feature](https://github.com/BeamlakTamirat/parkme-plus/issues) • [Documentation](https://github.com/BeamlakTamirat/parkme-plus)
 
 </div>
