@@ -574,7 +574,7 @@ flutter build web --release
 
 | User App | Admin Dashboard | Attendant App |
 |----------|----------------|---------------|
-| ![User](📸screenshots/user app/photo_9_2025-11-28_22-52-08.jpg) | ![Admin](📸screenshots/admin app/photo_6_2025-11-28_23-12-18.jpg) | ![Attendant](📸screenshots/attendant app/photo_5_2025-11-28_23-15-02.jpg) |
+| ![User](screenshots/user app/photo_9_2025-11-28_22-52-08.jpg) | ![Admin](screenshots/admin app/photo_6_2025-11-28_23-12-18.jpg) | ![Attendant](screenshots/attendant app/photo_5_2025-11-28_23-15-02.jpg) |
 
 ## 🤝 Contributing
 
