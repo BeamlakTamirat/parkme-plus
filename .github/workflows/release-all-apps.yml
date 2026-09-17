@@ -109,7 +109,7 @@ jobs:
           rm -rf packages/apps/user_app/android/app/build
           
           echo "Cleaning global caches..."
-          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/caches/ || true
           
           
       # ========== BUILD ADMIN APP ==========
@@ -152,7 +152,7 @@ jobs:
           rm -rf packages/apps/admin_app/android/app/build
 
           echo "Cleaning global caches..."
-          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/caches/ || true
 
           
       # ========== BUILD ATTENDANT APP ==========
