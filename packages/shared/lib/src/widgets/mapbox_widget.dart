@@ -562,7 +562,7 @@ class _MapPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.grey[300]
+      ..color = Colors.grey.shade300
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -576,7 +576,7 @@ class _MapPatternPainter extends CustomPainter {
     }
 
     // Draw some "streets"
-    paint.color = Colors.grey[400];
+    paint.color = Colors.grey.shade400;
     paint.strokeWidth = 2.0;
     canvas.drawLine(
       Offset(size.width * 0.3, 0),
